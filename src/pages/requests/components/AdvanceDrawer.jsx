@@ -102,7 +102,7 @@ export default function AdvanceDrawer({
         >
           <InputNumber
             placeholder="Enter amount"
-            className="w-full"
+            className="w-full!"
             formatter={(value) =>
               `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
             }
