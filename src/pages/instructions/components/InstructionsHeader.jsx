@@ -19,7 +19,7 @@ const InstructionsHeader = React.memo(
           </div>
           <div>
             <h1 className="text-xl font-bold text-text sm:text-2xl">
-              Instructions & SOPs
+              Instructions
             </h1>
             <p className="text-sm text-text/50">
               {hasActiveFilters
