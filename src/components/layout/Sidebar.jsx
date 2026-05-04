@@ -2,7 +2,9 @@ import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { removeToken } from "../../utils/storage";
 import SidebarMenu from "./SidebarMenu";
-import logoSvg from "../../assets/svg/logo.svg";
+
+const LOGO_URL =
+  "https://res.cloudinary.com/dhebgz7qh/image/upload/v1767452496/y3replc9wmlnvwb7kjvo_hyo3u3.png";
 
 export default function Sidebar({ collapsed }) {
   const navigate = useNavigate();
@@ -27,11 +29,20 @@ export default function Sidebar({ collapsed }) {
           ${collapsed ? "justify-center px-3" : "px-5"}
         `}
       >
-        <img src={logoSvg} alt="Logo" className="w-9 h-9" />
+        <img
+          src={LOGO_URL}
+          alt="NOUR MAISON"
+          className="w-9 h-9 rounded-[10px] object-contain"
+        />
         {!collapsed && (
-          <span className="text-text text-lg font-bold tracking-tight">
-            RestroAdmin
-          </span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-text text-base font-bold tracking-tight">
+              NOUR MAISON
+            </span>
+            <span className="text-text/40 text-[10px] font-medium tracking-widest uppercase">
+              Admin
+            </span>
+          </div>
         )}
       </div>
 

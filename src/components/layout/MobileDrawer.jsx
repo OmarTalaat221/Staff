@@ -3,7 +3,9 @@ import { LogOut, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { removeToken } from "../../utils/storage";
 import SidebarMenu from "./SidebarMenu";
-import logoSvg from "../../assets/svg/logo.svg";
+
+const LOGO_URL =
+  "https://res.cloudinary.com/dhebgz7qh/image/upload/v1767452496/y3replc9wmlnvwb7kjvo_hyo3u3.png";
 
 export default function MobileDrawer({ open, onClose }) {
   const navigate = useNavigate();
@@ -30,10 +32,19 @@ export default function MobileDrawer({ open, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between h-16 px-5 border-b border-border shrink-0">
           <div className="flex items-center gap-3">
-            <img src={logoSvg} alt="Logo" className="w-9 h-9" />
-            <span className="text-text text-lg font-bold tracking-tight">
-              RestroAdmin
-            </span>
+            <img
+              src={LOGO_URL}
+              alt="NOUR MAISON"
+              className="w-9 h-9 rounded-[10px] object-contain"
+            />
+            <div className="flex flex-col leading-tight">
+              <span className="text-text text-base font-bold tracking-tight">
+                NOUR MAISON
+              </span>
+              <span className="text-text/40 text-[10px] font-medium tracking-widest uppercase">
+                Admin
+              </span>
+            </div>
           </div>
 
           <button

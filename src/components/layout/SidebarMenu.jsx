@@ -39,7 +39,6 @@ export default function SidebarMenu({ collapsed, onItemClick }) {
 
         return (
           <div key={item.key}>
-            {/* Main Item */}
             <button
               onClick={() => {
                 if (hasChildren) {
@@ -83,7 +82,6 @@ export default function SidebarMenu({ collapsed, onItemClick }) {
               )}
             </button>
 
-            {/* Sub Items */}
             {hasChildren && !collapsed && isOpen && (
               <div className="ml-5 mt-1 flex flex-col gap-0.5 border-l-2 border-border pl-3">
                 {item.children.map((child) => {

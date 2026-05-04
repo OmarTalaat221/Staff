@@ -6,6 +6,7 @@ import {
   MessageSquare,
   ArrowUpRight,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const stats = [
   {
@@ -97,6 +98,8 @@ const unreadMessages = [
 ];
 
 export default function DashboardHome() {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -139,7 +142,10 @@ export default function DashboardHome() {
         <div className="lg:col-span-2 bg-surface border border-border rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-text text-lg font-semibold">Recent Requests</h2>
-            <button className="flex items-center gap-1 text-primary text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer">
+            <button
+              onClick={() => navigate("/requests/leave")}
+              className="flex items-center gap-1 text-primary text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer"
+            >
               View all
               <ArrowUpRight size={14} />
             </button>
@@ -194,7 +200,10 @@ export default function DashboardHome() {
         <div className="bg-surface border border-border rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-text text-lg font-semibold">Messages</h2>
-            <button className="flex items-center gap-1 text-primary text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer">
+            <button
+              onClick={() => navigate("/chat")}
+              className="flex items-center gap-1 text-primary text-sm font-medium hover:opacity-80 transition-opacity cursor-pointer"
+            >
               Open Chat
               <MessageSquare size={14} />
             </button>

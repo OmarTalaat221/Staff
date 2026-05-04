@@ -1,6 +1,6 @@
 const antdTheme = {
   token: {
-    colorPrimary: "#2563EB",
+    colorPrimary: "#84B067",
     colorText: "#111827",
     colorBgLayout: "#F6F8FB",
     colorBgContainer: "#FFFFFF",
@@ -21,8 +21,8 @@ const antdTheme = {
     Input: {
       borderRadius: 12,
       controlHeight: 46,
-      activeBorderColor: "#2563EB",
-      hoverBorderColor: "#93C5FD",
+      activeBorderColor: "#84B067",
+      hoverBorderColor: "#599066",
     },
     Card: {
       borderRadius: 18,
