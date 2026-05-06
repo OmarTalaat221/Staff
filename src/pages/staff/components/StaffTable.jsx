@@ -7,7 +7,9 @@ import {
   Trash2,
   UserCheck,
   UserX,
+  ExternalLink,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import StaffStatusBadge from "./StaffStatusBadge";
 
 // Static pagination config - never re-created
@@ -25,8 +27,16 @@ const RowActions = memo(function RowActions({
   onDelete,
   onToggleStatus,
 }) {
+  const navigate = useNavigate();
+
   const items = useMemo(
     () => [
+      {
+        key: "profile",
+        icon: <ExternalLink size={14} />,
+        label: "View Profile",
+        onClick: () => navigate(`/staff/${record.id}`),
+      },
       {
         key: "view",
         icon: <Eye size={14} />,
@@ -94,7 +104,7 @@ const StaffTable = memo(function StaffTable({
             <Avatar
               size={38}
               style={{
-                backgroundColor: "#2563EB",
+                backgroundColor: "#84B067",
                 fontSize: 14,
                 fontWeight: 600,
               }}

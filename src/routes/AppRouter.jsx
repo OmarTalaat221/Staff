@@ -12,6 +12,7 @@ import Transfers from "../pages/transfers/Transfers";
 import Chat from "../pages/chat/Chat";
 import Instructions from "../pages/instructions/Instructions";
 import TrainingVideos from "../pages/training/TrainingVideos";
+import StaffProfile from "../pages/staff/profile/StaffProfile";
 
 export default function AppRouter() {
   return (
@@ -30,6 +31,8 @@ export default function AppRouter() {
         >
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/staff" element={<StaffList />} />
+          <Route path="/staff/:id" element={<StaffProfile />} />
+
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/requests/leave" element={<LeaveRequest />} />
           <Route path="/requests/cash-advance" element={<CashAdvance />} />

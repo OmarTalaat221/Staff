@@ -70,13 +70,13 @@ export default function ScheduleFilters({
 
         {/* Actions */}
         <div className="flex items-center gap-2.5">
-          <Button
+          {/* <Button
             icon={<Coffee size={16} />}
             onClick={onOpenBreakSettings}
             style={{ height: 42 }}
           >
             Break Times
-          </Button>
+          </Button> */}
           <Button
             type="primary"
             icon={<Plus size={16} />}

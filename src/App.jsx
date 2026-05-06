@@ -2,10 +2,14 @@ import { ConfigProvider } from "antd";
 import { Toaster } from "react-hot-toast";
 import AppRouter from "./routes/AppRouter";
 import antdTheme from "./theme/antdTheme";
+import dayjs from "dayjs";
+import "dayjs/locale/en-gb";
+dayjs.locale("en-gb");
+import enGB from "antd/locale/en_GB";
 
 export default function App() {
   return (
-    <ConfigProvider theme={antdTheme}>
+    <ConfigProvider theme={antdTheme} locale={enGB}>
       <Toaster
         position="top-right"
         toastOptions={{

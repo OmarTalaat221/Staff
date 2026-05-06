@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Modal, Avatar } from "antd";
+import { Modal, Avatar, Button } from "antd";
 import {
   Mail,
   Phone,
@@ -7,7 +7,9 @@ import {
   Building2,
   CalendarDays,
   Banknote,
+  ExternalLink,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import StaffStatusBadge from "./StaffStatusBadge";
 
 const InfoRow = memo(function InfoRow({ icon: Icon, label, value }) {
@@ -28,6 +30,13 @@ const StaffViewModal = memo(function StaffViewModal({ open, staff, onClose }) {
   if (!open) return null;
   if (!staff) return null;
 
+  const navigate = useNavigate();
+
+  const handleOpenProfile = () => {
+    onClose();
+    navigate(`/staff/${staff.id}`);
+  };
+
   return (
     <Modal
       open={open}
@@ -45,7 +54,7 @@ const StaffViewModal = memo(function StaffViewModal({ open, staff, onClose }) {
           <Avatar
             size={56}
             style={{
-              backgroundColor: "#2563EB",
+              backgroundColor: "#84B067",
               fontSize: 22,
               fontWeight: 700,
             }}
@@ -83,6 +92,16 @@ const StaffViewModal = memo(function StaffViewModal({ open, staff, onClose }) {
             label="Salary"
             value={`${staff.salary?.toLocaleString()} EGP`}
           />
+        </div>
+
+        <div className="mt-5 pt-4 border-t border-border flex justify-end">
+          <Button
+            type="primary"
+            icon={<ExternalLink size={15} />}
+            onClick={handleOpenProfile}
+          >
+            View Full Profile
+          </Button>
         </div>
       </div>
     </Modal>

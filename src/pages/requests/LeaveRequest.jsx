@@ -96,7 +96,7 @@ export default function LeaveRequest() {
           icon={CalendarDays}
           label="Total Requests"
           value={stats.total}
-          color="#2563EB"
+          color="#84B067"
         />
         <StatCard
           icon={Clock}

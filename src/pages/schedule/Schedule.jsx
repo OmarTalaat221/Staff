@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { CalendarDays, ClipboardList } from "lucide-react";
 import useSchedulePage from "./useSchedulePage";
 import ScheduleStats from "./components/ScheduleStats";
 import ScheduleFilters from "./components/ScheduleFilters";
@@ -6,8 +8,16 @@ import ShiftDrawer from "./components/ShiftDrawer";
 import ShiftViewModal from "./components/ShiftViewModal";
 import ShiftDeleteModal from "./components/ShiftDeleteModal";
 import BreakTimeSettings from "./components/BreakTimeSettings";
+import AttendanceTabContent from "./attendance/AttendanceTabContent";
+
+const TABS = [
+  { key: "schedule", label: "Schedule", icon: CalendarDays },
+  { key: "attendance", label: "Attendance", icon: ClipboardList },
+];
 
 export default function Schedule() {
+  const [activeTab, setActiveTab] = useState("schedule");
+
   const {
     weekDays,
     weekLabel,
@@ -60,72 +70,92 @@ export default function Schedule() {
         </p>
       </div>
 
-      {/* Stats */}
-      <ScheduleStats stats={stats} />
+      {/* Tab Bar */}
+      <div className="flex gap-1 border-b border-border">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                active
+                  ? "border-primary text-primary"
+                  : "border-transparent text-text/50 hover:text-text hover:border-border"
+              }`}
+            >
+              <Icon size={16} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Filters + Navigation */}
-      <ScheduleFilters
-        weekLabel={weekLabel}
-        onPrevWeek={goToPrevWeek}
-        onNextWeek={goToNextWeek}
-        onToday={goToToday}
-        shiftTypeFilter={shiftTypeFilter}
-        onShiftTypeChange={setShiftTypeFilter}
-        roleFilter={roleFilter}
-        onRoleChange={setRoleFilter}
-        hasActiveFilters={hasActiveFilters}
-        onClearFilters={handleClearFilters}
-        onAddShift={handleOpenAdd}
-        onOpenBreakSettings={handleOpenBreakSettings}
-      />
+      {/* Tab 1 — Schedule */}
+      {activeTab === "schedule" && (
+        <>
+          <ScheduleStats stats={stats} />
 
-      {/* Week Grid */}
-      <ScheduleWeekView
-        weekDays={weekDays}
-        groupedShifts={groupedShifts}
-        onViewShift={handleViewShift}
-        onEditShift={handleOpenEdit}
-        onDeleteShift={handleOpenDelete}
-        onAddShift={handleOpenAdd}
-      />
+          <ScheduleFilters
+            weekLabel={weekLabel}
+            onPrevWeek={goToPrevWeek}
+            onNextWeek={goToNextWeek}
+            onToday={goToToday}
+            shiftTypeFilter={shiftTypeFilter}
+            onShiftTypeChange={setShiftTypeFilter}
+            roleFilter={roleFilter}
+            onRoleChange={setRoleFilter}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={handleClearFilters}
+            onAddShift={handleOpenAdd}
+            onOpenBreakSettings={handleOpenBreakSettings}
+          />
 
-      {/* Shift Drawer */}
-      <ShiftDrawer
-        open={drawerOpen}
-        onClose={handleCloseDrawer}
-        onSubmit={handleSubmitShift}
-        editShift={editShift}
-        loading={drawerLoading}
-        weekDays={weekDays}
-        shiftTypes={shiftTypes}
-        staffMembers={staffMembers}
-        preSelectedDate={preSelectedDate}
-        preSelectedShiftType={preSelectedShiftType}
-      />
+          <ScheduleWeekView
+            weekDays={weekDays}
+            groupedShifts={groupedShifts}
+            onViewShift={handleViewShift}
+            onEditShift={handleOpenEdit}
+            onDeleteShift={handleOpenDelete}
+            onAddShift={handleOpenAdd}
+          />
 
-      {/* View Modal */}
-      <ShiftViewModal
-        open={viewModalOpen}
-        onClose={handleCloseView}
-        shift={viewShift}
-      />
+          <ShiftDrawer
+            open={drawerOpen}
+            onClose={handleCloseDrawer}
+            onSubmit={handleSubmitShift}
+            editShift={editShift}
+            loading={drawerLoading}
+            weekDays={weekDays}
+            shiftTypes={shiftTypes}
+            staffMembers={staffMembers}
+            preSelectedDate={preSelectedDate}
+            preSelectedShiftType={preSelectedShiftType}
+          />
+          <ShiftViewModal
+            open={viewModalOpen}
+            onClose={handleCloseView}
+            shift={viewShift}
+          />
+          <ShiftDeleteModal
+            open={deleteModalOpen}
+            onClose={handleCloseDelete}
+            onConfirm={handleConfirmDelete}
+            shift={deleteShift}
+            loading={deleteLoading}
+          />
+          <BreakTimeSettings
+            open={breakModalOpen}
+            onClose={handleCloseBreakSettings}
+            presets={breakPresets}
+            onSave={handleSaveBreakPresets}
+          />
+        </>
+      )}
 
-      {/* Delete Modal */}
-      <ShiftDeleteModal
-        open={deleteModalOpen}
-        onClose={handleCloseDelete}
-        onConfirm={handleConfirmDelete}
-        shift={deleteShift}
-        loading={deleteLoading}
-      />
-
-      {/* Break Time Settings */}
-      <BreakTimeSettings
-        open={breakModalOpen}
-        onClose={handleCloseBreakSettings}
-        presets={breakPresets}
-        onSave={handleSaveBreakPresets}
-      />
+      {/* Tab 2 — Attendance */}
+      {activeTab === "attendance" && <AttendanceTabContent />}
     </div>
   );
 }

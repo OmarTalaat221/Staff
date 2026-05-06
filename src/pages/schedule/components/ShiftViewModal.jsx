@@ -1,4 +1,5 @@
-import { Modal } from "antd";
+import { Modal, Button } from "antd";
+import { useNavigate } from "react-router-dom";
 import {
   Calendar,
   Clock,
@@ -9,6 +10,7 @@ import {
   Sun,
   Sunset,
   Moon,
+  ExternalLink,
 } from "lucide-react";
 
 const shiftIcons = {
@@ -42,6 +44,8 @@ const InfoRow = ({ icon: Icon, label, value }) => (
 );
 
 export default function ShiftViewModal({ open, onClose, shift }) {
+  const navigate = useNavigate();
+
   if (!shift) return null;
 
   const ShiftIcon = shiftIcons[shift.shiftType] || Sun;
@@ -54,6 +58,11 @@ export default function ShiftViewModal({ open, onClose, shift }) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const handleViewProfile = () => {
+    onClose?.();
+    navigate(`/staff/${shift.staffId}`);
+  };
 
   return (
     <Modal
@@ -105,6 +114,19 @@ export default function ShiftViewModal({ open, onClose, shift }) {
         {shift.notes && (
           <InfoRow icon={FileText} label="Notes" value={shift.notes} />
         )}
+      </div>
+
+      {/* Action */}
+      <div className="pt-5 mt-5 border-t border-border">
+        <Button
+          type="primary"
+          block
+          icon={<ExternalLink size={16} />}
+          onClick={handleViewProfile}
+          className="flex items-center justify-center gap-2"
+        >
+          View Profile
+        </Button>
       </div>
     </Modal>
   );
