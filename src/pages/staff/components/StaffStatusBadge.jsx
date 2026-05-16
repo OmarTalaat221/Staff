@@ -19,7 +19,7 @@ const config = {
 };
 
 const StaffStatusBadge = memo(function StaffStatusBadge({ status }) {
-  const c = config[status] || config.inactive;
+  const c = config[status?.toLowerCase()] || config.inactive;
 
   return (
     <span

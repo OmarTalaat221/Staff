@@ -20,7 +20,7 @@ const InfoRow = memo(function InfoRow({ icon: Icon, label, value }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-text/50 text-xs">{label}</p>
-        <p className="text-text text-sm font-medium truncate">{value}</p>
+        <p className="text-text text-sm font-medium">{value}</p>
       </div>
     </div>
   );
@@ -75,6 +75,7 @@ const StaffViewModal = memo(function StaffViewModal({ open, staff, onClose }) {
         {/* Info Grid */}
         <div className="bg-bg rounded-xl p-4 space-y-4">
           <InfoRow icon={Mail} label="Email" value={staff.email} />
+          {console.log("staff", staff)}
           <InfoRow icon={Phone} label="Phone" value={staff.phone} />
           <InfoRow icon={Briefcase} label="Role" value={staff.role} />
           <InfoRow

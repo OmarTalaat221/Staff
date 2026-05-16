@@ -152,6 +152,12 @@ const StaffTable = memo(function StaffTable({
         render: (status) => <StaffStatusBadge status={status} />,
       },
       {
+        title: "Salary",
+        dataIndex: "salary",
+        key: "salary",
+        render: (salary, record) => <span className={`px-2 py-1 rounded-full ${record?.salary_type === "Monthly" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"} text-sm`}>{`$${salary} ${record?.salary_type}`}</span>,
+      },
+      {
         title: "",
         key: "actions",
         width: 50,

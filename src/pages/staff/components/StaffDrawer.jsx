@@ -32,10 +32,12 @@ const StaffDrawer = memo(function StaffDrawer({
 
   useEffect(() => {
     if (!open) return;
-
+console.log("editingStaff", editingStaff)
     if (isEdit && editingStaff) {
       form.setFieldsValue({
         ...editingStaff,
+        password: editingStaff.password || "",
+        address: editingStaff.address || "",
         joinDate: editingStaff.joinDate ? dayjs(editingStaff.joinDate) : null,
       });
     } else {
@@ -45,10 +47,23 @@ const StaffDrawer = memo(function StaffDrawer({
   }, [open, isEdit, editingStaff, form]);
 
   const handleFinish = (values) => {
-    onSubmit({
-      ...values,
+    const data = {
+      name: values.name,
+      email: values.email,
+      phone: values.phone,
+      role: values.role,
+      department: values.department,
       joinDate: values.joinDate ? values.joinDate.format("YYYY-MM-DD") : null,
-    });
+      salary: values.salary,
+      status: values.status,
+      salary_type: values.salary_type,
+      password: values.password,
+      address: values.address,
+      join_date: values.joinDate ? values.joinDate.format("YYYY-MM-DD") : null,
+    };
+    onSubmit(data);
+
+    // onSubmit(data);
   };
 
   return (
@@ -122,6 +137,28 @@ const StaffDrawer = memo(function StaffDrawer({
             <Select placeholder="Select role" options={roleOptions} />
           </Form.Item>
 
+          {/* Price Type */}
+          <Form.Item
+            name="salary_type"
+            label={<span className="text-text text-sm font-medium">Salary Type</span>}
+            rules={[{ required: true, message: "Price Type is required" }]}
+          >
+            <Select placeholder="Select Price Type">
+              <Option value="monthly">Monthly</Option>
+              <Option value="yearly">Yearly</Option>
+            </Select>
+          </Form.Item>
+          {/* Password */}
+          {!isEdit && (
+            <Form.Item
+              name="password"
+              label={<span className="text-text text-sm font-medium">Password</span>}
+              rules={[{ required: true, message: "Password is required" }]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+          )}
+          
           <Form.Item
             name="department"
             label={
@@ -151,7 +188,7 @@ const StaffDrawer = memo(function StaffDrawer({
             name="salary"
             label={
               <span className="text-text text-sm font-medium">
-                Salary (EGP)
+                Our Rate
               </span>
             }
             rules={[{ required: true, message: "Salary is required" }]}

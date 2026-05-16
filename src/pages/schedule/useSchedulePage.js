@@ -1,7 +1,9 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
+import { getAllShifts, addShift, updateShift, deleteShift } from "../../features/Schedule/scheduleService";
+import { getAllStaff } from "../../features/Staff/staffService";
 
 dayjs.extend(isoWeek);
 
@@ -118,11 +120,57 @@ export default function useSchedulePage() {
   const [currentWeekStart, setCurrentWeekStart] = useState(
     dayjs().startOf("isoWeek")
   );
-  const [shifts, setShifts] = useState(() =>
-    generateMockShifts(dayjs().startOf("isoWeek"))
-  );
+  const [shifts, setShifts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [staffMembers, setStaffMembers] = useState([]);
   const [shiftTypeFilter, setShiftTypeFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [shiftsRes, staffRes] = await Promise.all([
+        getAllShifts(),
+        getAllStaff()
+      ]);
+
+      if (shiftsRes.status === "success") {
+        setShifts(shiftsRes.data.map(item => ({
+          id: item.shift_id,
+          date: item.shift_date,
+          shiftType: item.shift_type.toLowerCase(),
+          staffId: item.employee_id,
+          staffName: item.full_name,
+          staffRole: item.role,
+          startTime: item.start_time,
+          endTime: item.end_time,
+          breakStart: item.break_start,
+          breakEnd: item.break_end,
+          // Calculate break minutes for stats
+          breakMinutes: item.break_start && item.break_end 
+            ? dayjs(`2000-01-01 ${item.break_end}`).diff(dayjs(`2000-01-01 ${item.break_start}`), 'minute')
+            : 0,
+          notes: item.notes,
+        })));
+      }
+
+      if (staffRes.status === "success") {
+        setStaffMembers(staffRes.data.map(item => ({
+          id: item.employee_id,
+          name: item.full_name,
+          role: item.role
+        })));
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to fetch schedule data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // Drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -227,25 +275,15 @@ export default function useSchedulePage() {
 
   // Navigation
   const goToPrevWeek = useCallback(() => {
-    setCurrentWeekStart((prev) => {
-      const newStart = prev.subtract(7, "day");
-      setShifts(generateMockShifts(newStart));
-      return newStart;
-    });
+    setCurrentWeekStart((prev) => prev.subtract(7, "day"));
   }, []);
 
   const goToNextWeek = useCallback(() => {
-    setCurrentWeekStart((prev) => {
-      const newStart = prev.add(7, "day");
-      setShifts(generateMockShifts(newStart));
-      return newStart;
-    });
+    setCurrentWeekStart((prev) => prev.add(7, "day"));
   }, []);
 
   const goToToday = useCallback(() => {
-    const today = dayjs().startOf("isoWeek");
-    setCurrentWeekStart(today);
-    setShifts(generateMockShifts(today));
+    setCurrentWeekStart(dayjs().startOf("isoWeek"));
   }, []);
 
   const handleClearFilters = useCallback(() => {
@@ -280,51 +318,48 @@ export default function useSchedulePage() {
     async (values) => {
       setDrawerLoading(true);
       try {
-        await new Promise((res) => setTimeout(res, 800));
-
-        const staffMember = STAFF_MEMBERS.find((s) => s.id === values.staffId);
+        const staffMember = staffMembers.find((s) => s.id === values.staffId);
         const shiftConfig = SHIFT_TYPES.find((t) => t.key === values.shiftType);
 
+        // Map UI values to API payload
+        const payload = {
+          employee_id: values.staffId,
+          shift_date: values.date,
+          shift_type: values.shiftType.charAt(0).toUpperCase() + values.shiftType.slice(1), // Capitalize
+          start_time: values.startTime || shiftConfig?.startTime,
+          end_time: values.endTime || shiftConfig?.endTime,
+          break_start: values.breakStart || "12:00",
+          break_end: values.breakEnd || "13:00",
+          notes: values.notes || "",
+        };
+
         if (editShift) {
-          setShifts((prev) =>
-            prev.map((s) =>
-              s.id === editShift.id
-                ? {
-                    ...s,
-                    ...values,
-                    staffName: staffMember?.name || s.staffName,
-                    staffRole: staffMember?.role || s.staffRole,
-                    startTime: values.startTime || shiftConfig?.startTime,
-                    endTime: values.endTime || shiftConfig?.endTime,
-                  }
-                : s
-            )
-          );
-          toast.success(`Shift updated for ${staffMember?.name || "staff"}`);
+          payload.shift_id = editShift.id;
+          const response = await updateShift(payload);
+          if (response.status === "success") {
+            toast.success(`Shift updated for ${staffMember?.name || "staff"}`);
+            fetchData();
+            handleCloseDrawer();
+          } else {
+            toast.error(response.message || "Failed to update shift");
+          }
         } else {
-          const newShift = {
-            id: Date.now(),
-            date: values.date,
-            shiftType: values.shiftType,
-            staffId: values.staffId,
-            staffName: staffMember?.name || "",
-            staffRole: staffMember?.role || "",
-            startTime: values.startTime || shiftConfig?.startTime,
-            endTime: values.endTime || shiftConfig?.endTime,
-            breakMinutes: values.breakMinutes || 30,
-            notes: values.notes || "",
-          };
-          setShifts((prev) => [...prev, newShift]);
-          toast.success(`Shift assigned to ${staffMember?.name || "staff"}`);
+          const response = await addShift(payload);
+          if (response.status === "success") {
+            toast.success(`Shift assigned to ${staffMember?.name || "staff"}`);
+            fetchData();
+            handleCloseDrawer();
+          } else {
+            toast.error(response.message || "Failed to add shift");
+          }
         }
-        handleCloseDrawer();
-      } catch {
-        toast.error("Failed to save shift");
+      } catch (error) {
+        toast.error(error.message || "Failed to save shift");
       } finally {
         setDrawerLoading(false);
       }
     },
-    [editShift, handleCloseDrawer]
+    [editShift, handleCloseDrawer, staffMembers]
   );
 
   const handleViewShift = useCallback((shift) => {
@@ -350,13 +385,17 @@ export default function useSchedulePage() {
   const handleConfirmDelete = useCallback(async () => {
     setDeleteLoading(true);
     try {
-      await new Promise((res) => setTimeout(res, 700));
-      const name = deleteShift.staffName;
-      setShifts((prev) => prev.filter((s) => s.id !== deleteShift.id));
-      toast.success(`${name}'s shift has been removed`);
-      handleCloseDelete();
-    } catch {
-      toast.error("Failed to delete shift");
+      const response = await deleteShift(deleteShift.id);
+      if (response.status === "success") {
+        const name = deleteShift.staffName;
+        toast.success(`${name}'s shift has been removed`);
+        fetchData();
+        handleCloseDelete();
+      } else {
+        toast.error(response.message || "Failed to delete shift");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to delete shift");
     } finally {
       setDeleteLoading(false);
     }
@@ -395,8 +434,9 @@ export default function useSchedulePage() {
     shifts: filteredShifts,
     groupedShifts,
     stats,
+    loading,
     shiftTypes: SHIFT_TYPES,
-    staffMembers: STAFF_MEMBERS,
+    staffMembers,
 
     // Filters
     shiftTypeFilter,

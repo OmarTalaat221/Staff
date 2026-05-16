@@ -25,7 +25,8 @@ export default function ShiftDrawer({
           staffId: editShift.staffId,
           startTime: editShift.startTime,
           endTime: editShift.endTime,
-          breakMinutes: editShift.breakMinutes,
+          breakStart: editShift.breakStart || "12:00",
+          breakEnd: editShift.breakEnd || "13:00",
           notes: editShift.notes || "",
         });
       } else {
@@ -41,7 +42,8 @@ export default function ShiftDrawer({
             form.setFieldValue("endTime", config.endTime);
           }
         }
-        form.setFieldValue("breakMinutes", 30);
+        form.setFieldValue("breakStart", "12:00");
+        form.setFieldValue("breakEnd", "13:00");
       }
     }
   }, [
@@ -176,9 +178,18 @@ export default function ShiftDrawer({
           </Col>
         </Row>
 
-        <Form.Item name="breakMinutes" label="Break Duration">
-          <Select options={breakOptions} />
-        </Form.Item>
+        <Row gutter={12}>
+          <Col span={12}>
+            <Form.Item name="breakStart" label="Break Start">
+              <Input type="time" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="breakEnd" label="Break End">
+              <Input type="time" />
+            </Form.Item>
+          </Col>
+        </Row>
 
         <Form.Item name="notes" label="Notes (optional)">
           <Input.TextArea

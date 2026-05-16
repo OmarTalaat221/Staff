@@ -104,10 +104,10 @@ export default function ShiftViewModal({ open, onClose, shift }) {
         <InfoRow icon={Briefcase} label="Role" value={shift.staffRole} />
         <InfoRow
           icon={Coffee}
-          label="Break"
+          label="Break Time"
           value={
-            shift.breakMinutes > 0
-              ? `${shift.breakMinutes} minutes`
+            shift.breakStart && shift.breakEnd
+              ? `${shift.breakStart} - ${shift.breakEnd}`
               : "No break"
           }
         />

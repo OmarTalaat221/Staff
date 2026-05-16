@@ -9,6 +9,7 @@ import ShiftViewModal from "./components/ShiftViewModal";
 import ShiftDeleteModal from "./components/ShiftDeleteModal";
 import BreakTimeSettings from "./components/BreakTimeSettings";
 import AttendanceTabContent from "./attendance/AttendanceTabContent";
+import Loader from "../../shared/components/loader";
 
 const TABS = [
   { key: "schedule", label: "Schedule", icon: CalendarDays },
@@ -26,6 +27,7 @@ export default function Schedule() {
     goToToday,
     groupedShifts,
     stats,
+    loading,
     shiftTypes,
     staffMembers,
     shiftTypeFilter,
@@ -59,6 +61,8 @@ export default function Schedule() {
     handleCloseBreakSettings,
     handleSaveBreakPresets,
   } = useSchedulePage();
+
+  if (loading) return <Loader />;
 
   return (
     <div className="space-y-6">

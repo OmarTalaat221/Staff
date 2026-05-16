@@ -13,6 +13,9 @@ import Chat from "../pages/chat/Chat";
 import Instructions from "../pages/instructions/Instructions";
 import TrainingVideos from "../pages/training/TrainingVideos";
 import StaffProfile from "../pages/staff/profile/StaffProfile";
+import RotaList from "../pages/rota/RotaList";
+import RotaDetails from "../pages/rota/RotaDetails";
+import CreateRotaPage from "../pages/rota/CreateRotaPage";
 
 export default function AppRouter() {
   return (
@@ -34,6 +37,9 @@ export default function AppRouter() {
           <Route path="/staff/:id" element={<StaffProfile />} />
 
           <Route path="/schedule" element={<Schedule />} />
+          <Route path="/rota" element={<RotaList />} />
+          <Route path="/rota/create" element={<CreateRotaPage />} />
+          <Route path="/rota/:id" element={<RotaDetails />} />
           <Route path="/requests/leave" element={<LeaveRequest />} />
           <Route path="/requests/cash-advance" element={<CashAdvance />} />
           <Route path="/transfers" element={<Transfers />} />

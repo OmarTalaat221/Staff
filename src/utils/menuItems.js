@@ -8,6 +8,7 @@ import {
   BookOpen,
   Video,
   Users,
+  Copy,
 } from "lucide-react";
 
 const menuItems = [
@@ -28,6 +29,12 @@ const menuItems = [
     label: "Schedule",
     icon: CalendarDays,
     path: "/schedule",
+  },
+  {
+    key: "rota",
+    label: "Rota Templates",
+    icon: Copy,
+    path: "/rota",
   },
   {
     key: "requests",

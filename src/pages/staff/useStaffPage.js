@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import toast from "react-hot-toast";
+import { getAllStaff, addStaff, updateStaff, deleteStaff, toggleEmployeeStatus } from "../../features/Staff/staffService";
 
 const initialStaff = [
   {
@@ -118,15 +119,46 @@ export const DEPARTMENTS = [
   "Management",
 ];
 
-export const STATUSES = ["active", "on-leave", "inactive"];
+export const STATUSES = ["Active", "On Leave", "Inactive"];
 
 export default function useStaffPage() {
-  const [staff, setStaff] = useState(initialStaff);
+  const [staff, setStaff] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState(null);
   const [filterDepartment, setFilterDepartment] = useState(null);
   const [filterStatus, setFilterStatus] = useState(null);
 
+  const fetchData = async () => {
+    try {
+
+      const response = await getAllStaff();
+      setStaff(response?.data?.map(item => ({
+        id: item?.employee_id,
+        name: item?.full_name,
+        email: item?.email,
+        phone: item?.phone,
+        role: item?.role,
+        department: item?.department,
+        status: item?.status?.toLowerCase(),
+        joinDate: item?.join_date,
+        salary: item?.salary,
+        password: item?.password,
+        address: item?.address,
+        
+        avatar: null,
+        salary_type: item?.salary_type,
+      })));
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
   // Drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState("add");
@@ -165,9 +197,9 @@ export default function useStaffPage() {
   const stats = useMemo(() => {
     return {
       total: staff.length,
-      active: staff.filter((s) => s.status === "active").length,
-      onLeave: staff.filter((s) => s.status === "on-leave").length,
-      inactive: staff.filter((s) => s.status === "inactive").length,
+      active: staff.filter((s) => s?.status?.toLowerCase() === "active").length,
+      onLeave: staff.filter((s) => s?.status?.toLowerCase() === "on leave").length,
+      inactive: staff.filter((s) => s?.status?.toLowerCase() === "inactive").length,
     };
   }, [staff]);
 
@@ -196,28 +228,69 @@ export default function useStaffPage() {
 
       try {
         // Simulate API
-        await new Promise((r) => setTimeout(r, 800));
+        // await new Promise((r) => setTimeout(r, 800));
 
         if (drawerMode === "add") {
-          const newMember = {
-            ...values,
-            id: Date.now(),
-            avatar: null,
-          };
-          setStaff((prev) => [newMember, ...prev]);
+      
+          const dataSend = {
+            full_name: values.name,
+            email: values.email,
+            phone: values.phone,
+            address: values.address,
+            password: values.password,
+            role: values.role,
+            department: values.department,
+            salary_type: values.salary_type,
+            salary: values.salary,
+            join_date: values.join_date
+          }
 
-          toast.success(`${values.name} has been added successfully`);
+          const data = await addStaff(dataSend);
+          if (data.status == "success") {
+            toast.success(`${values.name} has been added successfully`);
+            fetchData()
+            closeDrawer();
+          } else {
+            toast.error(data.message);
+          }
         } else {
-          setStaff((prev) =>
-            prev.map((s) =>
-              s.id === editingStaff.id ? { ...s, ...values } : s
-            )
-          );
+          const dataSend = {
+            full_name: values.name,
+            email: values.email,
+            phone: values.phone,
+            address: values.address,
+            role: values.role,
+            department: values.department,
+            salary_type: values.salary_type,
+            salary: values.salary,
+            join_date: values.join_date,
+            employee_id: editingStaff.id,
+            status: values.status?.toLowerCase(),
+          }
 
-          toast.success(`${values.name}'s info updated successfully`);
+          if (values.password) {
+            dataSend.password = values.password;
+          }
+          const data = await updateStaff(dataSend);
+          if (data.status == "success") {
+            toast.success(`${values.name} has been updated successfully`);
+            fetchData()
+
+            closeDrawer();
+          } else {
+            toast.error(data.message);
+          }
+
+          // setStaff((prev) =>
+          //   prev.map((s) =>
+          //     s.id === editingStaff.id ? { ...s, ...values } : s
+          //   )
+          // );
+          setDrawerLoading(false);
+
+          // toast.success(`${values.name}'s info updated successfully`);
         }
 
-        closeDrawer();
       } catch {
         toast.error(
           drawerMode === "add"
@@ -259,31 +332,42 @@ export default function useStaffPage() {
     setDeleteLoading(true);
 
     try {
-      // Simulate API
-      await new Promise((r) => setTimeout(r, 600));
-
-      const deletedName = deletingStaff.name;
-
-      setStaff((prev) => prev.filter((s) => s.id !== deletingStaff.id));
-      closeDeleteModal();
-
-      toast.success(`${deletedName} has been removed`);
-    } catch {
-      toast.error("Failed to delete staff member");
+      const response = await deleteStaff(deletingStaff.id);
+      
+      if (response.status === "success") {
+        const deletedName = deletingStaff.name;
+        setStaff((prev) => prev.filter((s) => s.id !== deletingStaff.id));
+        closeDeleteModal();
+        toast.success(`${deletedName} has been removed`);
+      } else {
+        toast.error(response.message || "Failed to delete staff member");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to delete staff member");
+    } finally {
       setDeleteLoading(false);
     }
   }, [deletingStaff, closeDeleteModal]);
 
   // Status toggle
-  const toggleStatus = useCallback((record) => {
-    const newStatus = record.status === "active" ? "inactive" : "active";
-    const label = newStatus === "active" ? "activated" : "deactivated";
+  const toggleStatus = useCallback(async (record) => {
+    try {
+      const response = await toggleEmployeeStatus(record.id);
+      if (response.status === "success") {
+        const newStatus = record.status === "active" ? "inactive" : "active";
+        const label = newStatus === "active" ? "activated" : "deactivated";
 
-    setStaff((prev) =>
-      prev.map((s) => (s.id === record.id ? { ...s, status: newStatus } : s))
-    );
+        setStaff((prev) =>
+          prev.map((s) => (s.id === record.id ? { ...s, status: newStatus } : s))
+        );
 
-    toast.success(`${record.name} has been ${label}`);
+        toast.success(`${record.name} has been ${label}`);
+      } else {
+        toast.error(response.message || "Failed to toggle status");
+      }
+    } catch (error) {
+      toast.error(error.message || "An error occurred");
+    }
   }, []);
 
   // Clear filters

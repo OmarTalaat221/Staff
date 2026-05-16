@@ -7,6 +7,7 @@ import StaffTable from "./components/StaffTable";
 import StaffDrawer from "./components/StaffDrawer";
 import StaffViewModal from "./components/StaffViewModal";
 import StaffDeleteModal from "./components/StaffDeleteModal";
+import Loader from "../../shared/components/loader";
 
 // Static config - never re-created
 const statCards = [
