@@ -7,9 +7,9 @@ import DashboardHome from "../pages/dashboard/DashboardHome";
 import StaffList from "../pages/staff/StaffList";
 import Schedule from "../pages/schedule/Schedule";
 import LeaveRequest from "../pages/requests/LeaveRequest";
-import CashAdvance from "../pages/requests/CashAdvance";
+// import CashAdvance from "../pages/requests/CashAdvance";
 import Transfers from "../pages/transfers/Transfers";
-import Chat from "../pages/chat/Chat";
+// import Chat from "../pages/chat/Chat";
 import Instructions from "../pages/instructions/Instructions";
 import TrainingVideos from "../pages/training/TrainingVideos";
 import StaffProfile from "../pages/staff/profile/StaffProfile";
@@ -43,9 +43,9 @@ export default function AppRouter() {
           <Route path="/rota/:id" element={<RotaDetails />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/requests/leave" element={<LeaveRequest />} />
-          <Route path="/requests/cash-advance" element={<CashAdvance />} />
+          {/* <Route path="/requests/cash-advance" element={<CashAdvance />} /> */}
           <Route path="/transfers" element={<Transfers />} />
-          <Route path="/chat" element={<Chat />} />
+          {/* <Route path="/chat" element={<Chat />} /> */}
           <Route path="/instructions" element={<Instructions />} />
           <Route path="/training" element={<TrainingVideos />} />
         </Route>

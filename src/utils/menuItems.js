@@ -4,7 +4,7 @@ import {
   TreePalm,
   Banknote,
   ArrowLeftRight,
-  MessageSquare,
+  // MessageSquare,
   BookOpen,
   Video,
   Users,
@@ -47,11 +47,11 @@ const menuItems = [
         label: "Leave Requests",
         path: "/requests/leave",
       },
-      {
-        key: "cash-advance",
-        label: "Cash Advance",
-        path: "/requests/cash-advance",
-      },
+      // {
+      //   key: "cash-advance",
+      //   label: "Cash Advance",
+      //   path: "/requests/cash-advance",
+      // },
     ],
   },
   {
@@ -66,12 +66,12 @@ const menuItems = [
     icon: Banknote,
     path: "/expenses",
   },
-  {
-    key: "chat",
-    label: "Chat",
-    icon: MessageSquare,
-    path: "/chat",
-  },
+  // {
+  //   key: "chat",
+  //   label: "Chat",
+  //   icon: MessageSquare,
+  //   path: "/chat",
+  // },
   {
     key: "instructions",
     label: "Instructions",
