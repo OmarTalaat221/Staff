@@ -16,6 +16,7 @@ import StaffProfile from "../pages/staff/profile/StaffProfile";
 import RotaList from "../pages/rota/RotaList";
 import RotaDetails from "../pages/rota/RotaDetails";
 import CreateRotaPage from "../pages/rota/CreateRotaPage";
+import Expenses from "../pages/expenses/Expenses";
 
 export default function AppRouter() {
   return (
@@ -40,6 +41,7 @@ export default function AppRouter() {
           <Route path="/rota" element={<RotaList />} />
           <Route path="/rota/create" element={<CreateRotaPage />} />
           <Route path="/rota/:id" element={<RotaDetails />} />
+          <Route path="/expenses" element={<Expenses />} />
           <Route path="/requests/leave" element={<LeaveRequest />} />
           <Route path="/requests/cash-advance" element={<CashAdvance />} />
           <Route path="/transfers" element={<Transfers />} />

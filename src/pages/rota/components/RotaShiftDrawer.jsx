@@ -110,26 +110,13 @@ export default function RotaShiftDrawer({
         size="small"
       >
         <Row gutter={12}>
-          <Col span={12}>
+          <Col span={24}>
             <Form.Item
               name="day_number"
               label="Day of Month"
               rules={[{ required: true }]}
             >
               <Select placeholder="Select day" options={dayOptions} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="shift_type"
-              label="Shift Type"
-              rules={[{ required: true }]}
-            >
-              <Select
-                placeholder="Select type"
-                options={SHIFT_TYPES.map(t => ({ value: t.key, label: t.label }))}
-                onChange={handleShiftTypeChange}
-              />
             </Form.Item>
           </Col>
         </Row>

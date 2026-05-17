@@ -61,6 +61,12 @@ const menuItems = [
     path: "/transfers",
   },
   {
+    key: "expenses",
+    label: "Expenses",
+    icon: Banknote,
+    path: "/expenses",
+  },
+  {
     key: "chat",
     label: "Chat",
     icon: MessageSquare,

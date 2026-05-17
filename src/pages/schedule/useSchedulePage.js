@@ -136,10 +136,10 @@ export default function useSchedulePage() {
 
       if (shiftsRes.status === "success") {
         setShifts(shiftsRes.data.map(item => ({
-          id: item.shift_id,
+          id: Number(item.shift_id),
           date: item.shift_date,
           shiftType: item.shift_type.toLowerCase(),
-          staffId: item.employee_id,
+          staffId: Number(item.employee_id),
           staffName: item.full_name,
           staffRole: item.role,
           startTime: item.start_time,
@@ -156,7 +156,7 @@ export default function useSchedulePage() {
 
       if (staffRes.status === "success") {
         setStaffMembers(staffRes.data.map(item => ({
-          id: item.employee_id,
+          id: Number(item.employee_id),
           name: item.full_name,
           role: item.role
         })));
@@ -185,7 +185,7 @@ export default function useSchedulePage() {
 
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteShift, setDeleteShift] = useState(null);
+  const [deleteShiftTarget, setDeleteShiftTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
 
@@ -373,21 +373,21 @@ export default function useSchedulePage() {
   }, []);
 
   const handleOpenDelete = useCallback((shift) => {
-    setDeleteShift(shift);
+    setDeleteShiftTarget(shift);
     setDeleteModalOpen(true);
   }, []);
 
   const handleCloseDelete = useCallback(() => {
     setDeleteModalOpen(false);
-    setDeleteShift(null);
+    setDeleteShiftTarget(null);
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
     setDeleteLoading(true);
     try {
-      const response = await deleteShift(deleteShift.id);
+      const response = await deleteShift(deleteShiftTarget.id);
       if (response.status === "success") {
-        const name = deleteShift.staffName;
+        const name = deleteShiftTarget.staffName;
         toast.success(`${name}'s shift has been removed`);
         fetchData();
         handleCloseDelete();
@@ -399,7 +399,7 @@ export default function useSchedulePage() {
     } finally {
       setDeleteLoading(false);
     }
-  }, [deleteShift, handleCloseDelete]);
+  }, [deleteShiftTarget, handleCloseDelete]);
 
 
   const handleOpenBreakSettings = useCallback(() => {
@@ -465,7 +465,7 @@ export default function useSchedulePage() {
 
 
     deleteModalOpen,
-    deleteShift,
+    deleteShift: deleteShiftTarget,
     deleteLoading,
     handleOpenDelete,
     handleCloseDelete,

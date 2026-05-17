@@ -22,7 +22,7 @@ export default function ShiftDrawer({
         form.setFieldsValue({
           date: editShift.date,
           shiftType: editShift.shiftType,
-          staffId: editShift.staffId,
+          staffId: Number(editShift.staffId),
           startTime: editShift.startTime,
           endTime: editShift.endTime,
           breakStart: editShift.breakStart || "12:00",
@@ -74,7 +74,7 @@ export default function ShiftDrawer({
   }));
 
   const staffOptions = staffMembers.map((s) => ({
-    value: s.id,
+    value: Number(s.id),
     label: `${s.name} — ${s.role}`,
   }));
 
