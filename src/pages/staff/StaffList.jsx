@@ -68,6 +68,7 @@ export default function StaffList() {
   const {
     staff,
     stats,
+    loading,
     search,
     setSearch,
     filterRole,
@@ -98,6 +99,14 @@ export default function StaffList() {
     handleDelete,
     toggleStatus,
   } = useStaffPage();
+
+  if (loading) {
+    return (
+      <div className="relative min-h-[400px] flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

@@ -389,6 +389,7 @@ export default function useStaffPage() {
   return {
     staff: filteredStaff,
     stats,
+    loading,
 
     search,
     setSearch,

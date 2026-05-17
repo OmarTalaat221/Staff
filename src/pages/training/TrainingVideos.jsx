@@ -8,6 +8,7 @@ import VideoGrid from "./components/VideoGrid";
 import VideoDrawer from "./components/VideoDrawer";
 import VideoViewModal from "./components/VideoViewModal";
 import VideoDeleteModal from "./components/VideoDeleteModal";
+import Loader from "../../shared/components/loader";
 
 const TrainingVideos = () => {
   const {
@@ -39,7 +40,16 @@ const TrainingVideos = () => {
     handleConfirmDelete,
     handleToggleFeatured,
     categories,
+    loading,
   } = useTrainingVideos();
+
+  if (loading) {
+    return (
+      <div className="relative min-h-[400px] flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

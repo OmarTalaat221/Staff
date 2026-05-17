@@ -8,6 +8,7 @@ import LeaveViewModal from "./components/LeaveViewModal";
 import LeaveDeleteModal from "./components/LeaveDeleteModal";
 import LeaveReviewModal from "./components/LeaveReviewModal";
 import useLeaveRequests from "./useLeaveRequest";
+import Loader from "../../shared/components/loader";
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <div className="bg-surface rounded-2xl border border-border p-4 flex items-center gap-3">
@@ -66,7 +67,16 @@ export default function LeaveRequest() {
     handleOpenReview,
     handleCloseReview,
     handleReviewAction,
+    loading,
   } = useLeaveRequests();
+
+  if (loading) {
+    return (
+      <div className="relative min-h-[400px] flex items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
