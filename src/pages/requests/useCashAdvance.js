@@ -125,26 +125,26 @@ export default function useCashAdvance() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterMethod, setFilterMethod] = useState("");
 
-  // Drawer
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editAdvance, setEditAdvance] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
-  // View
+
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewAdvance, setViewAdvance] = useState(null);
 
-  // Delete
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteAdvance, setDeleteAdvance] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Review
+
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewAdvance, setReviewAdvance] = useState(null);
   const [reviewLoading, setReviewLoading] = useState(false);
 
-  // Filtered
+
   const filteredAdvances = useMemo(() => {
     const searchLower = deferredSearch.toLowerCase();
 
@@ -162,7 +162,7 @@ export default function useCashAdvance() {
     });
   }, [advances, deferredSearch, filterStatus, filterMethod]);
 
-  // Stats
+
   const stats = useMemo(() => {
     const total = advances.length;
     const pending = advances.filter((a) => a.status === "pending").length;
@@ -185,7 +185,7 @@ export default function useCashAdvance() {
     toast("Filters cleared", { icon: "✓" });
   }, []);
 
-  // Drawer
+
   const handleOpenAdd = useCallback(() => {
     setEditAdvance(null);
     setDrawerOpen(true);
@@ -215,14 +215,14 @@ export default function useCashAdvance() {
             prev.map((adv) =>
               adv.id === editAdvance.id
                 ? {
-                    ...adv,
-                    staffId: values.staffId,
-                    staffName: staffMember?.name || adv.staffName,
-                    staffRole: staffMember?.role || adv.staffRole,
-                    amount: values.amount,
-                    reason: values.reason || "",
-                    repaymentMethod: values.repaymentMethod,
-                  }
+                  ...adv,
+                  staffId: values.staffId,
+                  staffName: staffMember?.name || adv.staffName,
+                  staffRole: staffMember?.role || adv.staffRole,
+                  amount: values.amount,
+                  reason: values.reason || "",
+                  repaymentMethod: values.repaymentMethod,
+                }
                 : adv
             )
           );
@@ -258,7 +258,7 @@ export default function useCashAdvance() {
     [editAdvance, handleCloseDrawer]
   );
 
-  // View
+
   const handleViewAdvance = useCallback((advance) => {
     setViewAdvance(advance);
     setViewModalOpen(true);
@@ -269,7 +269,7 @@ export default function useCashAdvance() {
     setViewAdvance(null);
   }, []);
 
-  // Delete
+
   const handleOpenDelete = useCallback((advance) => {
     setDeleteAdvance(advance);
     setDeleteModalOpen(true);
@@ -296,7 +296,7 @@ export default function useCashAdvance() {
     }
   }, [deleteAdvance, handleCloseDelete]);
 
-  // Review
+
   const handleOpenReview = useCallback((advance) => {
     setReviewAdvance(advance);
     setReviewModalOpen(true);
@@ -318,12 +318,12 @@ export default function useCashAdvance() {
           prev.map((adv) =>
             adv.id === reviewAdvance.id
               ? {
-                  ...adv,
-                  status: action,
-                  reviewedBy: "Admin",
-                  reviewedAt: dayjs().format("YYYY-MM-DD"),
-                  reviewNote: note || null,
-                }
+                ...adv,
+                status: action,
+                reviewedBy: "Admin",
+                reviewedAt: dayjs().format("YYYY-MM-DD"),
+                reviewNote: note || null,
+              }
               : adv
           )
         );
@@ -340,7 +340,7 @@ export default function useCashAdvance() {
     [reviewAdvance, handleCloseReview]
   );
 
-  // Mark as paid
+
   const handleMarkPaid = useCallback(async (advance) => {
     try {
       await new Promise((res) => setTimeout(res, 500));
@@ -349,10 +349,10 @@ export default function useCashAdvance() {
         prev.map((adv) =>
           adv.id === advance.id
             ? {
-                ...adv,
-                status: "paid",
-                paidAt: dayjs().format("YYYY-MM-DD"),
-              }
+              ...adv,
+              status: "paid",
+              paidAt: dayjs().format("YYYY-MM-DD"),
+            }
             : adv
         )
       );

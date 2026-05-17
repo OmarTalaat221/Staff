@@ -3,6 +3,14 @@ import { Button } from "antd";
 import { Play, CheckCircle, Star, Clock, User } from "lucide-react";
 import CategoryBadge from "./CategoryBadge";
 
+const getThumbnailUrl = (url) => {
+  if (!url) return "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&q=80";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  return `https://camp-coding.site/nourstaff/admin/${url}`;
+};
+
 const FeaturedVideo = React.memo(({ video, onPlay, onToggleWatched }) => {
   const handlePlay = useCallback(() => {
     onPlay(video.id);
@@ -18,7 +26,7 @@ const FeaturedVideo = React.memo(({ video, onPlay, onToggleWatched }) => {
         {/* Thumbnail */}
         <div className="relative lg:w-[420px] shrink-0">
           <img
-            src={video.thumbnail}
+            src={getThumbnailUrl(video.thumbnail)}
             alt={video.title}
             className="h-[200px] w-full object-cover lg:h-full"
           />

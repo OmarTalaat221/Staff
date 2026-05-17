@@ -10,6 +10,8 @@ const InstructionsHeader = React.memo(
     allExpanded,
     onExpandAll,
     onCollapseAll,
+    onAddCategory,
+    onAddSOP,
   }) => {
     return (
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -30,6 +32,20 @@ const InstructionsHeader = React.memo(
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            type="dashed"
+            onClick={onAddCategory}
+            className="font-medium"
+          >
+            Add Category
+          </Button>
+          <Button
+            type="primary"
+            onClick={onAddSOP}
+            className="font-medium"
+          >
+            Add SOP
+          </Button>
           <Button
             icon={
               allExpanded ? (

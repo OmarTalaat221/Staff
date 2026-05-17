@@ -145,7 +145,7 @@ export default function useStaffPage() {
         salary: item?.salary,
         password: item?.password,
         address: item?.address,
-        
+
         avatar: null,
         salary_type: item?.salary_type,
       })));
@@ -159,22 +159,22 @@ export default function useStaffPage() {
   useEffect(() => {
     fetchData();
   }, []);
-  // Drawer
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState("add");
   const [editingStaff, setEditingStaff] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
-  // View
+
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewingStaff, setViewingStaff] = useState(null);
 
-  // Delete
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deletingStaff, setDeletingStaff] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Filtered
+
   const filteredStaff = useMemo(() => {
     return staff.filter((member) => {
       const matchesSearch =
@@ -193,7 +193,7 @@ export default function useStaffPage() {
     });
   }, [staff, search, filterRole, filterDepartment, filterStatus]);
 
-  // Stats
+
   const stats = useMemo(() => {
     return {
       total: staff.length,
@@ -203,7 +203,7 @@ export default function useStaffPage() {
     };
   }, [staff]);
 
-  // Drawer actions
+
   const openAddDrawer = useCallback(() => {
     setEditingStaff(null);
     setDrawerMode("add");
@@ -227,11 +227,11 @@ export default function useStaffPage() {
       setDrawerLoading(true);
 
       try {
-        // Simulate API
-        // await new Promise((r) => setTimeout(r, 800));
+
+
 
         if (drawerMode === "add") {
-      
+
           const dataSend = {
             full_name: values.name,
             email: values.email,
@@ -281,14 +281,14 @@ export default function useStaffPage() {
             toast.error(data.message);
           }
 
-          // setStaff((prev) =>
-          //   prev.map((s) =>
-          //     s.id === editingStaff.id ? { ...s, ...values } : s
-          //   )
-          // );
+
+
+
+
+
           setDrawerLoading(false);
 
-          // toast.success(`${values.name}'s info updated successfully`);
+
         }
 
       } catch {
@@ -303,7 +303,7 @@ export default function useStaffPage() {
     [drawerMode, editingStaff, closeDrawer]
   );
 
-  // View
+
   const openViewModal = useCallback((record) => {
     setViewingStaff(record);
     setViewModalOpen(true);
@@ -314,7 +314,7 @@ export default function useStaffPage() {
     setViewingStaff(null);
   }, []);
 
-  // Delete
+
   const openDeleteModal = useCallback((record) => {
     setDeletingStaff(record);
     setDeleteModalOpen(true);
@@ -333,7 +333,7 @@ export default function useStaffPage() {
 
     try {
       const response = await deleteStaff(deletingStaff.id);
-      
+
       if (response.status === "success") {
         const deletedName = deletingStaff.name;
         setStaff((prev) => prev.filter((s) => s.id !== deletingStaff.id));
@@ -349,7 +349,7 @@ export default function useStaffPage() {
     }
   }, [deletingStaff, closeDeleteModal]);
 
-  // Status toggle
+
   const toggleStatus = useCallback(async (record) => {
     try {
       const response = await toggleEmployeeStatus(record.id);
@@ -370,7 +370,7 @@ export default function useStaffPage() {
     }
   }, []);
 
-  // Clear filters
+
   const clearFilters = useCallback(() => {
     setSearch("");
     setFilterRole(null);

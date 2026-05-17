@@ -1,6 +1,8 @@
-import { useState, useMemo, useCallback, useDeferredValue } from "react";
+import { useState, useMemo, useCallback, useDeferredValue, useEffect } from "react";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
+import { getLeaves, updateLeaveStatus } from "../../features/Leaves/leavesService";
+import { getAllStaff } from "../../features/Staff/staffService";
 
 const LEAVE_TYPES = [
   { value: "annual", label: "Annual Leave" },
@@ -9,181 +11,97 @@ const LEAVE_TYPES = [
   { value: "unpaid", label: "Unpaid Leave" },
 ];
 
-const STAFF_MEMBERS = [
-  { id: 1, name: "Ahmed Hassan", role: "Waiter" },
-  { id: 2, name: "Sarah Mohamed", role: "Chef" },
-  { id: 3, name: "Omar Ali", role: "Cashier" },
-  { id: 4, name: "Nour Ibrahim", role: "Host" },
-  { id: 5, name: "Karim Saad", role: "Delivery" },
-  { id: 6, name: "Layla Mahmoud", role: "Manager" },
-  { id: 7, name: "Youssef Khalil", role: "Chef" },
-  { id: 8, name: "Dina Samy", role: "Cleaner" },
-  { id: 9, name: "Mostafa Adel", role: "Waiter" },
-  { id: 10, name: "Rania Fawzy", role: "Cashier" },
-];
-
-const generateMockLeaves = () => {
-  const today = dayjs();
-
-  return [
-    {
-      id: 1,
-      staffId: 1,
-      staffName: "Ahmed Hassan",
-      staffRole: "Waiter",
-      type: "annual",
-      startDate: today.add(3, "day").format("YYYY-MM-DD"),
-      endDate: today.add(7, "day").format("YYYY-MM-DD"),
-      days: 5,
-      reason: "Family vacation trip",
-      status: "pending",
-      createdAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-      reviewedBy: null,
-      reviewedAt: null,
-      reviewNote: null,
-    },
-    {
-      id: 2,
-      staffId: 2,
-      staffName: "Sarah Mohamed",
-      staffRole: "Chef",
-      type: "sick",
-      startDate: today.subtract(1, "day").format("YYYY-MM-DD"),
-      endDate: today.add(1, "day").format("YYYY-MM-DD"),
-      days: 3,
-      reason: "Flu and fever",
-      status: "approved",
-      createdAt: today.subtract(2, "day").format("YYYY-MM-DD"),
-      reviewedBy: "Admin",
-      reviewedAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-      reviewNote: "Get well soon",
-    },
-    {
-      id: 3,
-      staffId: 3,
-      staffName: "Omar Ali",
-      staffRole: "Cashier",
-      type: "personal",
-      startDate: today.add(5, "day").format("YYYY-MM-DD"),
-      endDate: today.add(6, "day").format("YYYY-MM-DD"),
-      days: 2,
-      reason: "Personal errands",
-      status: "pending",
-      createdAt: today.format("YYYY-MM-DD"),
-      reviewedBy: null,
-      reviewedAt: null,
-      reviewNote: null,
-    },
-    {
-      id: 4,
-      staffId: 5,
-      staffName: "Karim Saad",
-      staffRole: "Delivery",
-      type: "annual",
-      startDate: today.subtract(10, "day").format("YYYY-MM-DD"),
-      endDate: today.subtract(6, "day").format("YYYY-MM-DD"),
-      days: 5,
-      reason: "Travel abroad",
-      status: "approved",
-      createdAt: today.subtract(15, "day").format("YYYY-MM-DD"),
-      reviewedBy: "Admin",
-      reviewedAt: today.subtract(14, "day").format("YYYY-MM-DD"),
-      reviewNote: "Approved",
-    },
-    {
-      id: 5,
-      staffId: 7,
-      staffName: "Youssef Khalil",
-      staffRole: "Chef",
-      type: "unpaid",
-      startDate: today.add(10, "day").format("YYYY-MM-DD"),
-      endDate: today.add(14, "day").format("YYYY-MM-DD"),
-      days: 5,
-      reason: "Family emergency back home",
-      status: "rejected",
-      createdAt: today.subtract(3, "day").format("YYYY-MM-DD"),
-      reviewedBy: "Admin",
-      reviewedAt: today.subtract(2, "day").format("YYYY-MM-DD"),
-      reviewNote: "Cannot approve during peak season",
-    },
-    {
-      id: 6,
-      staffId: 4,
-      staffName: "Nour Ibrahim",
-      staffRole: "Host",
-      type: "sick",
-      startDate: today.subtract(3, "day").format("YYYY-MM-DD"),
-      endDate: today.subtract(2, "day").format("YYYY-MM-DD"),
-      days: 2,
-      reason: "Stomach issues",
-      status: "approved",
-      createdAt: today.subtract(4, "day").format("YYYY-MM-DD"),
-      reviewedBy: "Admin",
-      reviewedAt: today.subtract(3, "day").format("YYYY-MM-DD"),
-      reviewNote: null,
-    },
-    {
-      id: 7,
-      staffId: 9,
-      staffName: "Mostafa Adel",
-      staffRole: "Waiter",
-      type: "personal",
-      startDate: today.add(1, "day").format("YYYY-MM-DD"),
-      endDate: today.add(2, "day").format("YYYY-MM-DD"),
-      days: 2,
-      reason: "Moving to a new apartment",
-      status: "pending",
-      createdAt: today.format("YYYY-MM-DD"),
-      reviewedBy: null,
-      reviewedAt: null,
-      reviewNote: null,
-    },
-    {
-      id: 8,
-      staffId: 6,
-      staffName: "Layla Mahmoud",
-      staffRole: "Manager",
-      type: "annual",
-      startDate: today.add(20, "day").format("YYYY-MM-DD"),
-      endDate: today.add(27, "day").format("YYYY-MM-DD"),
-      days: 8,
-      reason: "Summer vacation",
-      status: "pending",
-      createdAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-      reviewedBy: null,
-      reviewedAt: null,
-      reviewNote: null,
-    },
-  ];
-};
-
 export default function useLeaveRequests() {
-  const [leaves, setLeaves] = useState(generateMockLeaves);
+  const [leaves, setLeaves] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
 
-  // Drawer
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editLeave, setEditLeave] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
-  // View
+
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewLeave, setViewLeave] = useState(null);
 
-  // Delete
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteLeave, setDeleteLeave] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Review
+
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewLeave, setReviewLeave] = useState(null);
   const [reviewLoading, setReviewLoading] = useState(false);
 
-  // Filtered
+
+  const apiToUi = useCallback((api) => {
+    const start = dayjs(api.start_date);
+    const end = dayjs(api.end_date);
+    const calculatedDays = start.isValid() && end.isValid() ? end.diff(start, "day") + 1 : 0;
+
+    return {
+      id: String(api.leave_id),
+      leave_id: api.leave_id,
+      staffId: Number(api.employee_id),
+      staffName: api.full_name || "Name",
+      staffRole: api.role || "Waiter",
+      department: api.department || "Service",
+      type: "personal",
+      startDate: api.start_date,
+      endDate: api.end_date,
+      days: calculatedDays,
+      reason: api.reason || "",
+      handover: api.handover || "",
+      status: api.status ? api.status.toLowerCase() : "pending",
+      reviewNote: api.admin_notes || "",
+      createdAt: api.created_at,
+      reviewedBy: "Admin",
+      reviewedAt: api.updated_at || api.created_at,
+    };
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [leavesRes, staffRes] = await Promise.all([
+        getLeaves(),
+        getAllStaff()
+      ]);
+
+      if (leavesRes.status === "success") {
+        setLeaves(leavesRes.data.map(apiToUi));
+      } else {
+        toast.error("Failed to load leaves requests");
+      }
+
+      if (staffRes.status === "success") {
+        setStaffMembers(
+          staffRes.data.map((s) => ({
+            id: Number(s.employee_id),
+            name: s.full_name,
+            role: s.role,
+          }))
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load leaves requests");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [apiToUi]);
+
+
   const filteredLeaves = useMemo(() => {
     const searchLower = deferredSearch.toLowerCase();
 
@@ -201,7 +119,7 @@ export default function useLeaveRequests() {
     });
   }, [leaves, deferredSearch, filterType, filterStatus]);
 
-  // Stats
+
   const stats = useMemo(() => {
     const total = leaves.length;
     const pending = leaves.filter((l) => l.status === "pending").length;
@@ -223,7 +141,7 @@ export default function useLeaveRequests() {
     toast("Filters cleared", { icon: "✓" });
   }, []);
 
-  // Drawer handlers
+
   const handleOpenAdd = useCallback(() => {
     setEditLeave(null);
     setDrawerOpen(true);
@@ -242,56 +160,10 @@ export default function useLeaveRequests() {
   const handleSubmitLeave = useCallback(
     async (values) => {
       setDrawerLoading(true);
-
       try {
+
         await new Promise((res) => setTimeout(res, 800));
-
-        const staffMember = STAFF_MEMBERS.find((s) => s.id === values.staffId);
-        const start = dayjs(values.dateRange[0]);
-        const end = dayjs(values.dateRange[1]);
-        const days = end.diff(start, "day") + 1;
-
-        if (editLeave) {
-          setLeaves((prev) =>
-            prev.map((leave) =>
-              leave.id === editLeave.id
-                ? {
-                    ...leave,
-                    staffId: values.staffId,
-                    staffName: staffMember?.name || leave.staffName,
-                    staffRole: staffMember?.role || leave.staffRole,
-                    type: values.type,
-                    startDate: start.format("YYYY-MM-DD"),
-                    endDate: end.format("YYYY-MM-DD"),
-                    days,
-                    reason: values.reason || "",
-                  }
-                : leave
-            )
-          );
-          toast.success("Leave request updated");
-        } else {
-          const newLeave = {
-            id: Date.now(),
-            staffId: values.staffId,
-            staffName: staffMember?.name || "",
-            staffRole: staffMember?.role || "",
-            type: values.type,
-            startDate: start.format("YYYY-MM-DD"),
-            endDate: end.format("YYYY-MM-DD"),
-            days,
-            reason: values.reason || "",
-            status: "pending",
-            createdAt: dayjs().format("YYYY-MM-DD"),
-            reviewedBy: null,
-            reviewedAt: null,
-            reviewNote: null,
-          };
-
-          setLeaves((prev) => [newLeave, ...prev]);
-          toast.success(`Leave request created for ${staffMember?.name}`);
-        }
-
+        toast.success("Feature normally initiated from Employee App");
         handleCloseDrawer();
       } catch {
         toast.error("Failed to save leave request");
@@ -299,10 +171,10 @@ export default function useLeaveRequests() {
         setDrawerLoading(false);
       }
     },
-    [editLeave, handleCloseDrawer]
+    [handleCloseDrawer]
   );
 
-  // View
+
   const handleViewLeave = useCallback((leave) => {
     setViewLeave(leave);
     setViewModalOpen(true);
@@ -313,7 +185,7 @@ export default function useLeaveRequests() {
     setViewLeave(null);
   }, []);
 
-  // Delete
+
   const handleOpenDelete = useCallback((leave) => {
     setDeleteLeave(leave);
     setDeleteModalOpen(true);
@@ -326,7 +198,6 @@ export default function useLeaveRequests() {
 
   const handleConfirmDelete = useCallback(async () => {
     setDeleteLoading(true);
-
     try {
       await new Promise((res) => setTimeout(res, 700));
       const name = deleteLeave.staffName;
@@ -340,7 +211,7 @@ export default function useLeaveRequests() {
     }
   }, [deleteLeave, handleCloseDelete]);
 
-  // Review (approve / reject)
+
   const handleOpenReview = useCallback((leave) => {
     setReviewLeave(leave);
     setReviewModalOpen(true);
@@ -356,26 +227,18 @@ export default function useLeaveRequests() {
       setReviewLoading(true);
 
       try {
-        await new Promise((res) => setTimeout(res, 700));
+        const apiStatus = action === "approved" ? "Approved" : "Rejected";
+        const res = await updateLeaveStatus(reviewLeave.id, apiStatus, note || "");
 
-        setLeaves((prev) =>
-          prev.map((leave) =>
-            leave.id === reviewLeave.id
-              ? {
-                  ...leave,
-                  status: action,
-                  reviewedBy: "Admin",
-                  reviewedAt: dayjs().format("YYYY-MM-DD"),
-                  reviewNote: note || null,
-                }
-              : leave
-          )
-        );
-
-        const label = action === "approved" ? "approved" : "rejected";
-        toast.success(`Leave request ${label}`);
-        handleCloseReview();
-      } catch {
+        if (res.status === "success") {
+          toast.success(`Leave request ${action} successfully`);
+          fetchData();
+          handleCloseReview();
+        } else {
+          toast.error(res.message || "Failed to update leave status");
+        }
+      } catch (error) {
+        console.error(error);
         toast.error("Failed to review leave request");
       } finally {
         setReviewLoading(false);
@@ -388,7 +251,8 @@ export default function useLeaveRequests() {
     leaves: filteredLeaves,
     stats,
     leaveTypes: LEAVE_TYPES,
-    staffMembers: STAFF_MEMBERS,
+    staffMembers,
+    loading,
 
     search,
     setSearch,

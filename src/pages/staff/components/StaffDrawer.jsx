@@ -11,7 +11,7 @@ import {
 import { ROLES, DEPARTMENTS, STATUSES } from "../useStaffPage";
 import dayjs from "dayjs";
 
-// Pre-compute options outside - never re-created
+
 const roleOptions = ROLES.map((r) => ({ label: r, value: r }));
 const departmentOptions = DEPARTMENTS.map((d) => ({ label: d, value: d }));
 const statusOptions = STATUSES.map((s) => ({
@@ -32,7 +32,7 @@ const StaffDrawer = memo(function StaffDrawer({
 
   useEffect(() => {
     if (!open) return;
-console.log("editingStaff", editingStaff)
+    console.log("editingStaff", editingStaff)
     if (isEdit && editingStaff) {
       form.setFieldsValue({
         ...editingStaff,
@@ -63,7 +63,7 @@ console.log("editingStaff", editingStaff)
     };
     onSubmit(data);
 
-    // onSubmit(data);
+
   };
 
   return (
@@ -158,7 +158,7 @@ console.log("editingStaff", editingStaff)
               <Input.Password placeholder="Enter password" />
             </Form.Item>
           )}
-          
+
           <Form.Item
             name="department"
             label={

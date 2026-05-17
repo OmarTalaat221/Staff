@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 dayjs.extend(isoWeek);
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+
 
 const DEPARTMENTS = [
   "Service",
@@ -27,7 +27,7 @@ const PAGE_SIZE = 25;
 
 const isWeekend = (dow) => dow === 0 || dow === 6;
 
-// ─── Staff List ──────────────────────────────────────────────────────────────
+
 
 const STAFF_LIST = [
   { id: 1, name: "Ahmed Hassan", role: "Waiter", department: "Service" },
@@ -42,7 +42,7 @@ const STAFF_LIST = [
 
 const staffMap = Object.fromEntries(STAFF_LIST.map((s) => [s.id, s]));
 
-// ─── Attendance Generator (same logic as useStaffProfile) ────────────────────
+
 
 const SHIFTS = [
   { name: "Morning", start: "08:00", end: "16:00" },
@@ -138,7 +138,7 @@ const generateAttendanceForStaff = (staffId) => {
   return records;
 };
 
-// ─── Cache ───────────────────────────────────────────────────────────────────
+
 
 const attendanceCache = {};
 
@@ -149,7 +149,7 @@ const getAttendanceForStaff = (staffId) => {
   return attendanceCache[staffId];
 };
 
-// ─── All records enriched (computed once) ────────────────────────────────────
+
 
 const allRecordsEnriched = STAFF_LIST.flatMap((s) =>
   getAttendanceForStaff(s.id)
@@ -165,7 +165,7 @@ const allRecordsEnriched = STAFF_LIST.flatMap((s) =>
     };
   });
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 
 const formatMinutes = (mins) => {
   if (!mins || mins <= 0) return "0h 0m";
@@ -190,19 +190,19 @@ const filterByPeriod = (records, period, date) => {
       );
     });
   }
-  // month
+
   const monthStr = date.format("YYYY-MM");
   return records.filter((r) => r.date.startsWith(monthStr));
 };
 
-// ─── Hook ────────────────────────────────────────────────────────────────────
+
 
 export { formatMinutes };
 
 export default function useAttendanceTab() {
   const navigate = useNavigate();
 
-  // ── Filters ────────────────────────────────────────────────────────────────
+
   const [period, setPeriod] = useState("day");
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [searchRaw, setSearch] = useState("");
@@ -213,13 +213,13 @@ export default function useAttendanceTab() {
 
   const search = useDeferredValue(searchRaw);
 
-  // ── Period-filtered records ────────────────────────────────────────────────
+
   const periodRecords = useMemo(
     () => filterByPeriod(allRecordsEnriched, period, selectedDate),
     [period, selectedDate]
   );
 
-  // ── Fully filtered records ────────────────────────────────────────────────
+
   const filteredRecords = useMemo(() => {
     const q = search.trim().toLowerCase();
     return periodRecords.filter((r) => {
@@ -231,7 +231,7 @@ export default function useAttendanceTab() {
     });
   }, [periodRecords, search, department, role, statusFilter]);
 
-  // ── Stats (from period records — full picture before search/filter) ────────
+
   const stats = useMemo(() => {
     const presentCount = periodRecords.filter(
       (r) => r.status === "present" || r.status === "late"
@@ -257,7 +257,7 @@ export default function useAttendanceTab() {
     };
   }, [periodRecords]);
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
+
   const totalRecords = filteredRecords.length;
 
   const pagedRecords = useMemo(() => {
@@ -265,10 +265,10 @@ export default function useAttendanceTab() {
     return filteredRecords.slice(start, start + PAGE_SIZE);
   }, [filteredRecords, page]);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
+
   const hasActiveFilters = !!(searchRaw || department || role || statusFilter);
 
-  // ── Handlers ───────────────────────────────────────────────────────────────
+
   const handlePeriodChange = useCallback((p) => {
     setPeriod(p);
     setPage(1);
@@ -315,7 +315,7 @@ export default function useAttendanceTab() {
   );
 
   return {
-    // filter state
+
     period,
     selectedDate,
     searchRaw,
@@ -324,18 +324,18 @@ export default function useAttendanceTab() {
     statusFilter,
     hasActiveFilters,
 
-    // data
+
     stats,
     pagedRecords,
     totalRecords,
     page,
     pageSize: PAGE_SIZE,
 
-    // options
+
     departments: DEPARTMENTS,
     roles: ROLES,
 
-    // handlers
+
     handlePeriodChange,
     handleDateChange,
     handleSearchChange,

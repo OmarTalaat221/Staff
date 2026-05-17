@@ -1,10 +1,21 @@
 import React from "react";
 import { Button, Modal } from "antd";
 import { Clock3, Star, User, X } from "lucide-react";
+import ReactPlayer from "react-player";
 import CategoryBadge from "./CategoryBadge";
+
+const getVideoUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  return `https://camp-coding.site/nourstaff/admin/${url}`;
+};
 
 const VideoViewModal = React.memo(({ open, video, onClose }) => {
   if (!video) return null;
+
+  const targetUrl = getVideoUrl(video.videoUrl || video.video_url);
 
   return (
     <Modal
@@ -17,23 +28,21 @@ const VideoViewModal = React.memo(({ open, video, onClose }) => {
       closeIcon={<X size={18} />}
     >
       <div className="space-y-5">
-        <div className="overflow-hidden rounded-[16px] bg-black">
-          <video
+        <div className="overflow-hidden rounded-[16px] bg-black flex items-center justify-center relative min-h-[300px]">
+          <ReactPlayer
+            url={targetUrl}
             controls
-            poster={video.thumbnail}
-            className="w-full max-h-[400px]!"
-            preload="metadata"
-          >
-            <source src={video.videoUrl} type="video/mp4" />
-            Your browser does not support video playback.
-          </video>
+            width="100%"
+            height="400px"
+            style={{ borderRadius: "16px", overflow: "hidden" }}
+          />
         </div>
 
         <div>
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <CategoryBadge category={video.category} />
+            <CategoryBadge category={video.category_name || video.category} />
 
-            {video.featured && (
+            {Number(video.featured || video.is_featured) === 1 && (
               <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
                 <Star size={12} fill="currentColor" />
                 Featured
@@ -61,7 +70,7 @@ const VideoViewModal = React.memo(({ open, video, onClose }) => {
         </div>
 
         <div className="flex justify-end border-t border-border pt-4">
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose} className="rounded-xl h-10 px-5">Close</Button>
         </div>
       </div>
     </Modal>

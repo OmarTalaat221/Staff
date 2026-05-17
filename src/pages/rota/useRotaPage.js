@@ -7,12 +7,12 @@ export default function useRotaPage() {
   const [templates, setTemplates] = useState([]);
   const [staffMembers, setStaffMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Create Modal
+
+
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
 
-  // Apply Modal
+
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [applyingTemplate, setApplyingTemplate] = useState(null);
   const [applyLoading, setApplyLoading] = useState(false);
@@ -111,7 +111,7 @@ export default function useRotaPage() {
     staffMembers,
     loading,
     fetchTemplates,
-    
+
     createModalOpen,
     createLoading,
     openCreateModal,

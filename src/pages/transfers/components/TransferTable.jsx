@@ -29,6 +29,7 @@ const methodLabels = {
 
 function TransferTable({
   transfers,
+  loading,
   onView,
   onEdit,
   onDelete,
@@ -211,6 +212,7 @@ function TransferTable({
       <Table
         columns={columns}
         dataSource={transfers}
+        loading={loading}
         rowKey="id"
         pagination={{
           pageSize: 10,

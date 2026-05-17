@@ -87,6 +87,11 @@ export default function LeaveViewModal({ open, onClose, leave }) {
             <InfoRow icon={FileText} label="Reason" value={leave.reason} />
           </div>
         )}
+        {leave.handover && (
+          <div className="sm:col-span-2">
+            <InfoRow icon={User} label="Handover To" value={leave.handover} />
+          </div>
+        )}
       </div>
 
       {/* Review info */}

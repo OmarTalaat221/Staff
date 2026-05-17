@@ -11,7 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../useSettlementsTab";
 
-// ── Row ───────────────────────────────────────────────────────────────────────
+
 
 const Row = React.memo(function Row({ label, value, bold, color, dash }) {
   if (dash) {
@@ -46,7 +46,7 @@ const Row = React.memo(function Row({ label, value, bold, color, dash }) {
   );
 });
 
-// ── Section ───────────────────────────────────────────────────────────────────
+
 
 const Section = React.memo(function Section({
   icon: Icon,
@@ -74,7 +74,7 @@ const Section = React.memo(function Section({
   );
 });
 
-// ── Component ─────────────────────────────────────────────────────────────────
+
 
 const SettlementsViewModal = React.memo(function SettlementsViewModal({
   open,
@@ -258,11 +258,10 @@ const SettlementsViewModal = React.memo(function SettlementsViewModal({
             </p>
             {staff.netAmount !== staff.baseSalary && (
               <p
-                className={`text-xs font-medium mt-0.5 ${
-                  staff.netAmount < staff.baseSalary
+                className={`text-xs font-medium mt-0.5 ${staff.netAmount < staff.baseSalary
                     ? "text-danger"
                     : "text-success"
-                }`}
+                  }`}
               >
                 {staff.netAmount < staff.baseSalary ? "" : "+"}
                 {formatCurrency(staff.netAmount - staff.baseSalary)}

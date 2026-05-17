@@ -4,6 +4,8 @@ import InstructionsHeader from "./components/InstructionsHeader";
 import InstructionsStats from "./components/InstructionsStats";
 import InstructionsFilters from "./components/InstructionsFilters";
 import SOPCard from "./components/SOPCard";
+import AddCategoryModal from "./components/AddCategoryModal";
+import AddSOPDrawer from "./components/AddSOPDrawer";
 import { FileText } from "lucide-react";
 
 const Instructions = () => {
@@ -27,6 +29,16 @@ const Instructions = () => {
     roles,
     categories,
     priorities,
+
+    categoryModalOpen,
+    setCategoryModalOpen,
+    categoryLoading,
+    handleAddCategorySubmit,
+
+    sopDrawerOpen,
+    setSopDrawerOpen,
+    sopLoading,
+    handleAddSOPSubmit
   } = useInstructions();
 
   return (
@@ -38,6 +50,8 @@ const Instructions = () => {
         allExpanded={expandedIds.length === stats.total}
         onExpandAll={handleExpandAll}
         onCollapseAll={handleCollapseAll}
+        onAddCategory={() => setCategoryModalOpen(true)}
+        onAddSOP={() => setSopDrawerOpen(true)}
       />
 
       <InstructionsStats stats={stats} />
@@ -82,6 +96,24 @@ const Instructions = () => {
           </p>
         </div>
       )}
+
+      {/* Add Category Modal */}
+      <AddCategoryModal
+        open={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        onSubmit={handleAddCategorySubmit}
+        loading={categoryLoading}
+      />
+
+      {/* Add SOP Drawer */}
+      <AddSOPDrawer
+        open={sopDrawerOpen}
+        onClose={() => setSopDrawerOpen(false)}
+        onSubmit={handleAddSOPSubmit}
+        loading={sopLoading}
+        categories={categories}
+        roles={roles}
+      />
     </div>
   );
 };

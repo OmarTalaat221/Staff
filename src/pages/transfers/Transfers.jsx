@@ -20,7 +20,7 @@ import TransferViewModal from "./components/TransferViewModal";
 import TransferDeleteModal from "./components/TransferDeleteModal";
 import SettlementsTabContent from "./settlements/SettlementsTabContent";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("en-EG", {
@@ -29,7 +29,7 @@ const formatCurrency = (amount) =>
     minimumFractionDigits: 0,
   }).format(amount);
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
+
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <div className="bg-surface rounded-2xl border border-border p-4 flex items-center gap-3">
@@ -46,14 +46,14 @@ const StatCard = ({ icon: Icon, label, value, color }) => (
   </div>
 );
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
+
 
 const TABS = [
   { key: "transfers", label: "Transfers", icon: ArrowLeftRight },
   { key: "settlements", label: "Settlements", icon: FileSpreadsheet },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+
 
 export default function Transfers() {
   const [activeTab, setActiveTab] = useState("transfers");
@@ -64,6 +64,7 @@ export default function Transfers() {
     transferTypes,
     paymentMethods,
     staffMembers,
+    loading,
     search,
     setSearch,
     filterStatus,
@@ -132,11 +133,10 @@ export default function Transfers() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${
-                active
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors -mb-px ${active
                   ? "border-primary text-primary"
                   : "border-transparent text-text/50 hover:text-text hover:border-border"
-              }`}
+                }`}
             >
               <Icon size={16} />
               {tab.label}
@@ -248,6 +248,7 @@ export default function Transfers() {
           {/* Table */}
           <TransferTable
             transfers={transfers}
+            loading={loading}
             onView={handleViewTransfer}
             onEdit={handleOpenEdit}
             onDelete={handleOpenDelete}

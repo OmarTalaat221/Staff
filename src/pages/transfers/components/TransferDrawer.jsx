@@ -7,8 +7,10 @@ import {
   InputNumber,
   Button,
   DatePicker,
+  Upload,
 } from "antd";
 import dayjs from "dayjs";
+import { UploadCloud } from "lucide-react";
 
 export default function TransferDrawer({
   open,
@@ -175,6 +177,31 @@ export default function TransferDrawer({
           rules={[{ required: true, message: "Month is required" }]}
         >
           <DatePicker picker="month" className="w-full" format="YYYY-MM" />
+        </Form.Item>
+
+        <Form.Item
+          name="image"
+          label="Receipt Attachment"
+          valuePropName="fileList"
+          getValueFromEvent={(e) => {
+            if (Array.isArray(e)) return e;
+            return e && e.fileList;
+          }}
+        >
+          <Upload
+            name="image"
+            listType="picture"
+            maxCount={1}
+            beforeUpload={() => false}
+            className="w-full"
+          >
+            <Button
+              icon={<UploadCloud size={16} />}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-xl"
+            >
+              Select Receipt Image
+            </Button>
+          </Upload>
         </Form.Item>
 
         <Form.Item name="note" label="Note (optional)">

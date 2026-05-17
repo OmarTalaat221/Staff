@@ -8,6 +8,8 @@ import {
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
+import { getTransfers, addTransfer, deleteTransfer as deleteTransferApi } from "../../features/Transfers/transfersService";
+import { getAllStaff } from "../../features/Staff/staffService";
 
 const TRANSFER_TYPES = [
   { value: "salary", label: "Salary" },
@@ -23,275 +25,70 @@ const PAYMENT_METHODS = [
   { value: "wallet", label: "E-Wallet" },
 ];
 
-const STAFF_MEMBERS = [
-  { id: 1, name: "Ahmed Hassan", role: "Waiter", salary: 6000 },
-  { id: 2, name: "Sarah Mohamed", role: "Chef", salary: 9000 },
-  { id: 3, name: "Omar Ali", role: "Cashier", salary: 5500 },
-  { id: 4, name: "Nour Ibrahim", role: "Host", salary: 5000 },
-  { id: 5, name: "Karim Saad", role: "Delivery", salary: 4500 },
-  { id: 6, name: "Layla Mahmoud", role: "Manager", salary: 12000 },
-  { id: 7, name: "Youssef Khalil", role: "Chef", salary: 8500 },
-  { id: 8, name: "Dina Samy", role: "Cleaner", salary: 3500 },
-  { id: 9, name: "Mostafa Adel", role: "Waiter", salary: 5500 },
-  { id: 10, name: "Rania Fawzy", role: "Cashier", salary: 5000 },
-];
-
-const generateRef = () =>
-  `TXN-${Date.now().toString(36).toUpperCase().slice(-6)}`;
-
-const generateMockTransfers = () => {
-  const today = dayjs();
-  const currentMonth = today.format("YYYY-MM");
-  const lastMonth = today.subtract(1, "month").format("YYYY-MM");
-
-  return [
-    {
-      id: 1,
-      staffId: 1,
-      staffName: "Ahmed Hassan",
-      staffRole: "Waiter",
-      type: "salary",
-      amount: 6000,
-      method: "bank-transfer",
-      reference: "TXN-A1B2C3",
-      month: lastMonth,
-      status: "completed",
-      note: "",
-      createdAt: today.subtract(5, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(4, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 2,
-      staffId: 2,
-      staffName: "Sarah Mohamed",
-      staffRole: "Chef",
-      type: "salary",
-      amount: 9000,
-      method: "bank-transfer",
-      reference: "TXN-D4E5F6",
-      month: lastMonth,
-      status: "completed",
-      note: "",
-      createdAt: today.subtract(5, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(4, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 3,
-      staffId: 1,
-      staffName: "Ahmed Hassan",
-      staffRole: "Waiter",
-      type: "bonus",
-      amount: 500,
-      method: "cash",
-      reference: "TXN-G7H8I9",
-      month: lastMonth,
-      status: "completed",
-      note: "Performance bonus",
-      createdAt: today.subtract(3, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(3, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 4,
-      staffId: 3,
-      staffName: "Omar Ali",
-      staffRole: "Cashier",
-      type: "salary",
-      amount: 5500,
-      method: "bank-transfer",
-      reference: "TXN-J1K2L3",
-      month: currentMonth,
-      status: "processing",
-      note: "",
-      createdAt: today.format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-    {
-      id: 5,
-      staffId: 5,
-      staffName: "Karim Saad",
-      staffRole: "Delivery",
-      type: "deduction",
-      amount: 200,
-      method: "bank-transfer",
-      reference: "TXN-M4N5O6",
-      month: currentMonth,
-      status: "completed",
-      note: "Late deduction - 2 days",
-      createdAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 6,
-      staffId: 6,
-      staffName: "Layla Mahmoud",
-      staffRole: "Manager",
-      type: "salary",
-      amount: 12000,
-      method: "bank-transfer",
-      reference: "TXN-P7Q8R9",
-      month: currentMonth,
-      status: "pending",
-      note: "",
-      createdAt: today.format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-    {
-      id: 7,
-      staffId: 7,
-      staffName: "Youssef Khalil",
-      staffRole: "Chef",
-      type: "reimbursement",
-      amount: 350,
-      method: "wallet",
-      reference: "TXN-S1T2U3",
-      month: currentMonth,
-      status: "completed",
-      note: "Uniform reimbursement",
-      createdAt: today.subtract(2, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 8,
-      staffId: 4,
-      staffName: "Nour Ibrahim",
-      staffRole: "Host",
-      type: "salary",
-      amount: 5000,
-      method: "bank-transfer",
-      reference: "TXN-V4W5X6",
-      month: currentMonth,
-      status: "failed",
-      note: "Bank account issue",
-      createdAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-    {
-      id: 9,
-      staffId: 9,
-      staffName: "Mostafa Adel",
-      staffRole: "Waiter",
-      type: "salary",
-      amount: 5500,
-      method: "bank-transfer",
-      reference: "TXN-Y7Z8A1",
-      month: currentMonth,
-      status: "pending",
-      note: "",
-      createdAt: today.format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-    {
-      id: 10,
-      staffId: 2,
-      staffName: "Sarah Mohamed",
-      staffRole: "Chef",
-      type: "bonus",
-      amount: 1000,
-      method: "cash",
-      reference: "TXN-B2C3D4",
-      month: currentMonth,
-      status: "pending",
-      note: "Ramadan bonus",
-      createdAt: today.format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-    {
-      id: 11,
-      staffId: 8,
-      staffName: "Dina Samy",
-      staffRole: "Cleaner",
-      type: "salary",
-      amount: 3500,
-      method: "cash",
-      reference: "TXN-E5F6G7",
-      month: lastMonth,
-      status: "completed",
-      note: "",
-      createdAt: today.subtract(5, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(4, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 12,
-      staffId: 10,
-      staffName: "Rania Fawzy",
-      staffRole: "Cashier",
-      type: "deduction",
-      amount: 150,
-      method: "bank-transfer",
-      reference: "TXN-H8I9J1",
-      month: currentMonth,
-      status: "processing",
-      note: "Cash shortage deduction",
-      createdAt: today.format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-    // Cash Advances
-    {
-      id: 13,
-      staffId: 1,
-      staffName: "Ahmed Hassan",
-      staffRole: "Waiter",
-      type: "advance",
-      amount: 2000,
-      method: "cash",
-      reference: "TXN-ADV001",
-      month: currentMonth,
-      status: "completed",
-      note: "Medical emergency - repay over 2 months",
-      createdAt: today.subtract(10, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(9, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 14,
-      staffId: 5,
-      staffName: "Karim Saad",
-      staffRole: "Delivery",
-      type: "advance",
-      amount: 3000,
-      method: "bank-transfer",
-      reference: "TXN-ADV002",
-      month: currentMonth,
-      status: "pending",
-      note: "Wedding expenses - repay over 3 months",
-      createdAt: today.subtract(2, "day").format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-    {
-      id: 15,
-      staffId: 7,
-      staffName: "Youssef Khalil",
-      staffRole: "Chef",
-      type: "advance",
-      amount: 1500,
-      method: "cash",
-      reference: "TXN-ADV003",
-      month: lastMonth,
-      status: "completed",
-      note: "Personal needs - repaid via salary deduction",
-      createdAt: today.subtract(20, "day").format("YYYY-MM-DD"),
-      completedAt: today.subtract(18, "day").format("YYYY-MM-DD"),
-    },
-    {
-      id: 16,
-      staffId: 9,
-      staffName: "Mostafa Adel",
-      staffRole: "Waiter",
-      type: "advance",
-      amount: 1000,
-      method: "cash",
-      reference: "TXN-ADV004",
-      month: currentMonth,
-      status: "processing",
-      note: "House rent help",
-      createdAt: today.subtract(1, "day").format("YYYY-MM-DD"),
-      completedAt: null,
-    },
-  ];
+const apiTypeToUi = (type) => {
+  if (!type) return "salary";
+  const t = type.toLowerCase();
+  if (t === "salary") return "salary";
+  if (t === "bonus") return "bonus";
+  if (t === "advance" || t === "cash advance" || t === "cash_advance") return "advance";
+  if (t === "deduction") return "deduction";
+  if (t === "reimbursement") return "reimbursement";
+  return t;
 };
+
+const apiMethodToUi = (method) => {
+  if (!method) return "cash";
+  const m = method.toLowerCase();
+  if (m === "cash") return "cash";
+  if (m === "bank transfer" || m === "bank-transfer" || m === "bank_transfer") return "bank-transfer";
+  if (m === "e-wallet" || m === "wallet" || m === "e_wallet") return "wallet";
+  return m;
+};
+
+const apiStatusToUi = (status) => {
+  if (!status) return "pending";
+  return status.toLowerCase();
+};
+
+const uiTypeToApi = (type) => {
+  if (type === "salary") return "Salary";
+  if (type === "bonus") return "Bonus";
+  if (type === "advance") return "Cash Advance";
+  if (type === "deduction") return "Deduction";
+  if (type === "reimbursement") return "Reimbursement";
+  return type;
+};
+
+const uiMethodToApi = (method) => {
+  if (method === "cash") return "Cash";
+  if (method === "bank-transfer") return "Bank Transfer";
+  if (method === "wallet") return "E-Wallet";
+  return method;
+};
+
+const mapApiTransferToUi = (item) => ({
+  id: Number(item.transfer_id),
+  staffId: Number(item.employee_id),
+  staffName: item.full_name || "Unknown",
+  staffRole: item.role || "Staff",
+  type: apiTypeToUi(item.type),
+  amount: Number(item.amount),
+  method: apiMethodToUi(item.method),
+  reference: item.reference || `TXN-${item.transfer_id}`,
+  month: item.transfer_month,
+  status: apiStatusToUi(item.status),
+  note: item.notes || "",
+  createdAt: item.created_at ? item.created_at.split(" ")[0] : "",
+  completedAt: item.status?.toLowerCase() === "completed" ? (item.created_at ? item.created_at.split(" ")[0] : "") : null,
+  attachment: item.attachment || null,
+});
 
 export default function useTransfers() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [transfers, setTransfers] = useState(generateMockTransfers);
+  const [transfers, setTransfers] = useState([]);
+  const [staffMembers, setStaffMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [filterStatus, setFilterStatus] = useState("");
@@ -299,13 +96,48 @@ export default function useTransfers() {
   const [filterMethod, setFilterMethod] = useState("");
   const [filterStaffId, setFilterStaffId] = useState(null);
 
+  const fetchTransfersAndStaff = async () => {
+    setLoading(true);
+    try {
+      const [transfersRes, staffRes] = await Promise.all([
+        getTransfers(),
+        getAllStaff()
+      ]);
+
+      if (transfersRes.status === "success") {
+        setTransfers(transfersRes.data.map(mapApiTransferToUi));
+      } else {
+        toast.error("Failed to load transfers");
+      }
+
+      if (staffRes && (staffRes.status === "success" || Array.isArray(staffRes.data))) {
+        const list = Array.isArray(staffRes.data) ? staffRes.data : [];
+        setStaffMembers(list.map(s => ({
+          id: Number(s.employee_id),
+          name: s.full_name,
+          role: s.role || "Staff",
+          salary: Number(s.salary || 0)
+        })));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error loading transfers data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTransfersAndStaff();
+  }, []);
+
   useEffect(() => {
     const staffIdParam = searchParams.get("staffId");
     const typeParam = searchParams.get("type");
 
     if (staffIdParam) {
       const id = Number(staffIdParam);
-      const staff = STAFF_MEMBERS.find((s) => s.id === id);
+      const staff = staffMembers.find((s) => s.id === id);
       if (staff) setFilterStaffId(id);
     }
 
@@ -313,7 +145,7 @@ export default function useTransfers() {
       const validType = TRANSFER_TYPES.find((t) => t.value === typeParam);
       if (validType) setFilterType(typeParam);
     }
-  }, [searchParams]);
+  }, [searchParams, staffMembers]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editTransfer, setEditTransfer] = useState(null);
@@ -328,8 +160,8 @@ export default function useTransfers() {
 
   const filteredStaffMember = useMemo(() => {
     if (!filterStaffId) return null;
-    return STAFF_MEMBERS.find((s) => s.id === filterStaffId) || null;
-  }, [filterStaffId]);
+    return staffMembers.find((s) => s.id === filterStaffId) || null;
+  }, [filterStaffId, staffMembers]);
 
   const filteredTransfers = useMemo(() => {
     const searchLower = deferredSearch.toLowerCase();
@@ -465,58 +297,36 @@ export default function useTransfers() {
       setDrawerLoading(true);
 
       try {
-        await new Promise((res) => setTimeout(res, 800));
+        const formData = new FormData();
+        formData.append("employee_id", String(values.staffId));
+        formData.append("type", uiTypeToApi(values.type));
+        formData.append("amount", String(values.amount));
+        formData.append("method", uiMethodToApi(values.method));
+        formData.append("transfer_month", dayjs(values.month).format("YYYY-MM"));
+        formData.append("notes", values.note || "");
 
-        const staffMember = STAFF_MEMBERS.find((s) => s.id === values.staffId);
 
-        if (editTransfer) {
-          setTransfers((prev) =>
-            prev.map((transfer) =>
-              transfer.id === editTransfer.id
-                ? {
-                    ...transfer,
-                    staffId: values.staffId,
-                    staffName: staffMember?.name || transfer.staffName,
-                    staffRole: staffMember?.role || transfer.staffRole,
-                    type: values.type,
-                    amount: values.amount,
-                    method: values.method,
-                    month: dayjs(values.month).format("YYYY-MM"),
-                    note: values.note || "",
-                  }
-                : transfer
-            )
-          );
-          toast.success("Transfer updated");
-        } else {
-          const newTransfer = {
-            id: Date.now(),
-            staffId: values.staffId,
-            staffName: staffMember?.name || "",
-            staffRole: staffMember?.role || "",
-            type: values.type,
-            amount: values.amount,
-            method: values.method,
-            reference: generateRef(),
-            month: dayjs(values.month).format("YYYY-MM"),
-            status: "pending",
-            note: values.note || "",
-            createdAt: dayjs().format("YYYY-MM-DD"),
-            completedAt: null,
-          };
-
-          setTransfers((prev) => [newTransfer, ...prev]);
-          toast.success(`Transfer created for ${staffMember?.name}`);
+        const fileObj = values.image && values.image[0]?.originFileObj;
+        if (fileObj) {
+          formData.append("image", fileObj);
         }
 
-        handleCloseDrawer();
-      } catch {
+        const res = await addTransfer(formData);
+        if (res.status === "success") {
+          toast.success("Transfer saved successfully");
+          fetchTransfersAndStaff();
+          handleCloseDrawer();
+        } else {
+          toast.error(res.message || "Failed to save transfer");
+        }
+      } catch (error) {
+        console.error(error);
         toast.error("Failed to save transfer");
       } finally {
         setDrawerLoading(false);
       }
     },
-    [editTransfer, handleCloseDrawer]
+    [handleCloseDrawer]
   );
 
   const handleViewTransfer = useCallback((transfer) => {
@@ -543,12 +353,16 @@ export default function useTransfers() {
     setDeleteLoading(true);
 
     try {
-      await new Promise((res) => setTimeout(res, 700));
-      const ref = deleteTransfer.reference;
-      setTransfers((prev) => prev.filter((t) => t.id !== deleteTransfer.id));
-      toast.success(`Transfer ${ref} has been removed`);
-      handleCloseDelete();
-    } catch {
+      const res = await deleteTransferApi(deleteTransfer.id);
+      if (res.status === "success") {
+        toast.success(`Transfer has been removed`);
+        fetchTransfersAndStaff();
+        handleCloseDelete();
+      } else {
+        toast.error(res.message || "Failed to delete transfer");
+      }
+    } catch (error) {
+      console.error(error);
       toast.error("Failed to delete transfer");
     } finally {
       setDeleteLoading(false);
@@ -556,57 +370,15 @@ export default function useTransfers() {
   }, [deleteTransfer, handleCloseDelete]);
 
   const handleMarkCompleted = useCallback(async (transfer) => {
-    try {
-      await new Promise((res) => setTimeout(res, 500));
-
-      setTransfers((prev) =>
-        prev.map((t) =>
-          t.id === transfer.id
-            ? {
-                ...t,
-                status: "completed",
-                completedAt: dayjs().format("YYYY-MM-DD"),
-              }
-            : t
-        )
-      );
-
-      toast.success(`Transfer ${transfer.reference} marked as completed`);
-    } catch {
-      toast.error("Failed to update status");
-    }
+    toast.info("Status updates are handled via API actions");
   }, []);
 
   const handleMarkProcessing = useCallback(async (transfer) => {
-    try {
-      await new Promise((res) => setTimeout(res, 500));
-
-      setTransfers((prev) =>
-        prev.map((t) =>
-          t.id === transfer.id ? { ...t, status: "processing" } : t
-        )
-      );
-
-      toast.success(`Transfer ${transfer.reference} is now processing`);
-    } catch {
-      toast.error("Failed to update status");
-    }
+    toast.info("Status updates are handled via API actions");
   }, []);
 
   const handleRetry = useCallback(async (transfer) => {
-    try {
-      await new Promise((res) => setTimeout(res, 500));
-
-      setTransfers((prev) =>
-        prev.map((t) =>
-          t.id === transfer.id ? { ...t, status: "pending" } : t
-        )
-      );
-
-      toast.success(`Transfer ${transfer.reference} has been retried`);
-    } catch {
-      toast.error("Failed to retry transfer");
-    }
+    toast.info("Status updates are handled via API actions");
   }, []);
 
   return {
@@ -614,7 +386,8 @@ export default function useTransfers() {
     stats,
     transferTypes: TRANSFER_TYPES,
     paymentMethods: PAYMENT_METHODS,
-    staffMembers: STAFF_MEMBERS,
+    staffMembers,
+    loading,
 
     search,
     setSearch,
@@ -655,3 +428,4 @@ export default function useTransfers() {
     handleRetry,
   };
 }
+

@@ -124,6 +124,20 @@ export default function TransferViewModal({ open, onClose, transfer }) {
             <InfoRow icon={FileText} label="Note" value={transfer.note} />
           </div>
         )}
+
+        {transfer.attachment && (
+          <div className="sm:col-span-2 mt-2">
+            <p className="text-xs text-text/50 font-medium mb-1.5">Receipt Attachment</p>
+            <div className="rounded-2xl border border-border overflow-hidden bg-bg/20 p-2 flex items-center justify-center">
+              <img
+                src={`https://camp-coding.site/nourstaff/admin/${transfer.attachment}`}
+                alt="Receipt"
+                className="max-h-56 rounded-xl object-contain w-full cursor-zoom-in hover:opacity-90 transition-opacity"
+                onClick={() => window.open(`https://camp-coding.site/nourstaff/admin/${transfer.attachment}`, "_blank")}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );

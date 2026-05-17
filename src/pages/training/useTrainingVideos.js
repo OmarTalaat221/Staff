@@ -1,11 +1,6 @@
-import { useState, useMemo, useCallback, useDeferredValue } from "react";
+import { useState, useMemo, useCallback, useDeferredValue, useEffect } from "react";
 import toast from "react-hot-toast";
-import { CATEGORIES, VIDEOS, DEFAULT_VIDEO_URL } from "./data/videosData";
-
-const CATEGORY_LABEL_MAP = CATEGORIES.reduce((acc, item) => {
-  acc[item.id] = item.label;
-  return acc;
-}, {});
+import { getCategories, getVideos, addVideo } from "../../features/Education/educationService";
 
 const parseDurationToSeconds = (duration) => {
   if (!duration) return 0;
@@ -36,10 +31,10 @@ const formatTotalDuration = (seconds) => {
   return `${minutes}m`;
 };
 
-const mockDelay = () => new Promise((resolve) => setTimeout(resolve, 350));
-
 const useTrainingVideos = () => {
-  const [videos, setVideos] = useState(VIDEOS);
+  const [videos, setVideos] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [featuredFilter, setFeaturedFilter] = useState("all");
@@ -55,6 +50,53 @@ const useTrainingVideos = () => {
 
   const deferredSearch = useDeferredValue(search);
 
+
+  const apiToUi = useCallback((api) => {
+    return {
+      id: String(api.video_id),
+      video_id: api.video_id,
+      category_id: api.category_id,
+      category: api.category_name,
+      category_name: api.category_name,
+      title: api.title,
+      subtitle: api.category_name || "Training",
+      duration: api.duration || "5:00",
+      thumbnail: api.thumbnail_url || "",
+      videoUrl: api.video_url || "",
+      instructor: api.instructor || "Instructor",
+      description: api.description || "",
+      featured: Number(api.is_featured) === 1,
+      watched: false,
+      createdAt: api.created_at
+    };
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [catsRes, vidsRes] = await Promise.all([
+        getCategories(),
+        getVideos()
+      ]);
+
+      if (catsRes.status === "success") {
+        setCategories(catsRes.data);
+      }
+      if (vidsRes.status === "success") {
+        setVideos(vidsRes.data.map(apiToUi));
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load training videos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [apiToUi]);
+
   const filteredVideos = useMemo(() => {
     let result = [...videos];
 
@@ -66,12 +108,12 @@ const useTrainingVideos = () => {
           video.title.toLowerCase().includes(query) ||
           video.description.toLowerCase().includes(query) ||
           video.instructor.toLowerCase().includes(query) ||
-          video.subtitle.toLowerCase().includes(query)
+          video.category.toLowerCase().includes(query)
       );
     }
 
     if (selectedCategory !== "all") {
-      result = result.filter((video) => video.category === selectedCategory);
+      result = result.filter((video) => String(video.category_id) === String(selectedCategory));
     }
 
     if (featuredFilter === "featured") {
@@ -88,8 +130,8 @@ const useTrainingVideos = () => {
   const stats = useMemo(() => {
     const total = videos.length;
     const featured = videos.filter((video) => video.featured).length;
-    const appGuides = videos.filter((video) => video.category === "app").length;
-    const categories = CATEGORIES.filter((item) => item.id !== "all").length;
+    const appGuides = videos.filter((video) => String(video.category_id) === "1").length;
+    const categoriesCount = categories.length;
 
     const totalSeconds = videos.reduce((acc, video) => {
       return acc + parseDurationToSeconds(video.duration);
@@ -99,10 +141,10 @@ const useTrainingVideos = () => {
       total,
       featured,
       appGuides,
-      categories,
+      categories: categoriesCount,
       totalDuration: formatTotalDuration(totalSeconds),
     };
-  }, [videos]);
+  }, [videos, categories]);
 
   const hasActiveFilters = useMemo(() => {
     return !!(search || selectedCategory !== "all" || featuredFilter !== "all");
@@ -156,39 +198,65 @@ const useTrainingVideos = () => {
       setSubmitting(true);
 
       try {
-        await mockDelay();
+        const hasVideoFile = values.videoSource === "file" && !!(values.video_file && values.video_file[0]?.originFileObj);
+        const hasThumbnailFile = values.thumbnailSource === "file" && !!(values.thumbnail_file && values.thumbnail_file[0]?.originFileObj);
 
-        const payload = {
-          id: activeVideo?.id || Date.now().toString(),
-          title: values.title.trim(),
-          category: values.category,
-          subtitle: CATEGORY_LABEL_MAP[values.category] || "Training",
-          duration: values.duration.trim(),
-          thumbnail: values.thumbnail.trim(),
-          videoUrl: values.videoUrl.trim() || DEFAULT_VIDEO_URL,
-          instructor: values.instructor.trim(),
-          description: values.description.trim(),
-          featured: !!values.featured,
-          watched: activeVideo?.watched ?? false,
-        };
+        let payload;
 
-        if (drawerMode === "edit" && activeVideo) {
-          setVideos((prev) =>
-            prev.map((item) => (item.id === activeVideo.id ? payload : item))
-          );
-          toast.success("Video updated successfully");
+        if (!hasVideoFile && !hasThumbnailFile) {
+
+          payload = {
+            title: values.title.trim(),
+            category_id: Number(values.category_id),
+            instructor: values.instructor.trim(),
+            duration: values.duration.trim(),
+            description: values.description.trim(),
+            is_featured: values.is_featured ? 1 : 0,
+            video_url: (values.video_url || "").trim(),
+            thumbnail_url: (values.thumbnail_url || "").trim(),
+          };
         } else {
-          setVideos((prev) => [payload, ...prev]);
-          toast.success("Video uploaded successfully");
+
+          const formData = new FormData();
+          formData.append("title", values.title.trim());
+          formData.append("category_id", String(values.category_id));
+          formData.append("instructor", values.instructor.trim());
+          formData.append("duration", values.duration.trim());
+          formData.append("description", values.description.trim());
+          formData.append("is_featured", values.is_featured ? "1" : "0");
+
+          if (hasVideoFile) {
+            formData.append("video_file", values.video_file[0].originFileObj);
+          } else {
+            formData.append("video_url", (values.video_url || "").trim());
+          }
+
+          if (hasThumbnailFile) {
+            formData.append("thumbnail_file", values.thumbnail_file[0].originFileObj);
+          } else {
+            formData.append("thumbnail_url", (values.thumbnail_url || "").trim());
+          }
+
+          payload = formData;
         }
 
-        setDrawerOpen(false);
-        setActiveVideo(null);
+        const res = await addVideo(payload);
+        if (res.status === "success") {
+          toast.success(drawerMode === "edit" ? "Video updated successfully" : "Video uploaded successfully");
+          fetchData();
+          setDrawerOpen(false);
+          setActiveVideo(null);
+        } else {
+          toast.error(res.message || "Failed to save video");
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to save video");
       } finally {
         setSubmitting(false);
       }
     },
-    [activeVideo, drawerMode]
+    [drawerMode]
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -197,7 +265,6 @@ const useTrainingVideos = () => {
     setDeleting(true);
 
     try {
-      await mockDelay();
 
       setVideos((prev) => prev.filter((item) => item.id !== activeVideo.id));
       toast.success("Video deleted successfully");
@@ -227,6 +294,7 @@ const useTrainingVideos = () => {
     stats,
     hasActiveFilters,
     handleClearFilters,
+    loading,
 
     drawerOpen,
     drawerMode,
@@ -247,7 +315,7 @@ const useTrainingVideos = () => {
     handleConfirmDelete,
     handleToggleFeatured,
 
-    categories: CATEGORIES,
+    categories,
   };
 };
 

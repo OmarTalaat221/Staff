@@ -1,16 +1,16 @@
 import { useState, useMemo, useCallback } from "react";
 import dayjs from "dayjs";
 
-// ─── Constants ─────────────────────────────────────────────────────────────
 
-// Working week: Monday → Friday (5 days)
-// Weekend: Saturday (6) + Sunday (0)
-// Expected: 22 working days × 8h = 176h/month
+
+
+
+
 const EXPECTED_MONTHLY_HOURS = 176;
 
 const isWeekend = (dow) => dow === 0 || dow === 6;
 
-// ─── Attendance Mock Generator ─────────────────────────────────────────────
+
 
 const generateAttendance = (staffId) => {
   const records = [];
@@ -25,7 +25,7 @@ const generateAttendance = (staffId) => {
     const date = today.subtract(i, "day");
     const dayOfWeek = date.day();
 
-    // Weekend: Saturday + Sunday → off
+
     if (isWeekend(dayOfWeek)) {
       records.push({
         id: `${staffId}-${date.format("YYYY-MM-DD")}`,
@@ -48,7 +48,7 @@ const generateAttendance = (staffId) => {
     const shiftIndex = (staffId + i) % shifts.length;
     const shift = shifts[shiftIndex];
 
-    // Deterministic-ish status
+
     const seed = (staffId * 13 + i * 7) % 100;
     let status = "present";
     if (seed > 95) status = "on-leave";
@@ -122,7 +122,7 @@ const getAttendance = (staffId) => {
   return attendanceCache[staffId];
 };
 
-// ─── Mock Leaves ───────────────────────────────────────────────────────────
+
 
 const allLeaves = [
   {
@@ -226,7 +226,7 @@ const allLeaves = [
   },
 ];
 
-// ─── Mock Transfers ────────────────────────────────────────────────────────
+
 
 const currentMonth = dayjs().format("YYYY-MM");
 const lastMonth = dayjs().subtract(1, "month").format("YYYY-MM");
@@ -388,7 +388,7 @@ const allTransfers = [
   },
 ];
 
-// ─── Mock Schedules (next 14 days, skip weekends) ──────────────────────────
+
 
 const today = dayjs();
 const allSchedules = [];
@@ -398,7 +398,7 @@ for (let staffId = 1; staffId <= 8; staffId++) {
   for (let i = 0; i < 14; i++) {
     const date = today.add(i, "day");
     const dow = date.day();
-    if (isWeekend(dow)) continue; // skip Saturday + Sunday
+    if (isWeekend(dow)) continue;
 
     const periods = [
       { period: "Morning", startTime: "08:00", endTime: "16:00" },
@@ -419,7 +419,7 @@ for (let staffId = 1; staffId <= 8; staffId++) {
   }
 }
 
-// ─── Staff List ────────────────────────────────────────────────────────────
+
 
 const staffList = [
   {
@@ -512,7 +512,7 @@ const staffList = [
   },
 ];
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+
 
 const formatMinutes = (mins) => {
   if (!mins || mins <= 0) return "0h 0m";
@@ -521,7 +521,7 @@ const formatMinutes = (mins) => {
   return `${h}h ${m}m`;
 };
 
-// ─── Hook ──────────────────────────────────────────────────────────────────
+
 
 export default function useStaffProfile(staffId) {
   const id = Number(staffId);

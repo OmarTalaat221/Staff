@@ -4,7 +4,7 @@ import { FileText, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { formatCurrency } from "../useSettlementsTab";
 
-// ── Avatar ────────────────────────────────────────────────────────────────────
+
 
 const Initials = React.memo(function Initials({ name }) {
   const parts = name.trim().split(" ");
@@ -20,7 +20,7 @@ const Initials = React.memo(function Initials({ name }) {
   );
 });
 
-// ── Net badge ─────────────────────────────────────────────────────────────────
+
 
 const NetBadge = React.memo(function NetBadge({ net, base }) {
   const color = net < base ? "text-danger" : "text-success";
@@ -29,7 +29,7 @@ const NetBadge = React.memo(function NetBadge({ net, base }) {
   );
 });
 
-// ── Columns ───────────────────────────────────────────────────────────────────
+
 
 const buildColumns = (onViewBreakdown, onViewProfile) => [
   {
@@ -134,7 +134,7 @@ const buildColumns = (onViewBreakdown, onViewProfile) => [
   },
 ];
 
-// ── Component ─────────────────────────────────────────────────────────────────
+
 
 const SettlementsTable = React.memo(function SettlementsTable({
   settlements,

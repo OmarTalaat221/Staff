@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import AttendanceStatusBadge from "./AttendanceStatusBadge";
 import { formatMinutes } from "../useAttendanceTab";
 
-// ── Avatar Initials ──────────────────────────────────────────────────────────
+
 
 const Initials = React.memo(function Initials({ name }) {
   const parts = name.trim().split(" ");
@@ -21,7 +21,7 @@ const Initials = React.memo(function Initials({ name }) {
   );
 });
 
-// ── Columns ──────────────────────────────────────────────────────────────────
+
 
 const buildColumns = (onViewProfile) => [
   {
@@ -133,7 +133,7 @@ const buildColumns = (onViewProfile) => [
   },
 ];
 
-// ── Component ────────────────────────────────────────────────────────────────
+
 
 const AttendanceTable = React.memo(function AttendanceTable({
   records,

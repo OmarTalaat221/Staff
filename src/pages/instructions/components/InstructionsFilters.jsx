@@ -51,8 +51,8 @@ const InstructionsFilters = React.memo(
             allowClear
             className="w-full sm:w-[160px]"
             options={categories.map((c) => ({
-              value: c.key,
-              label: c.label,
+              value: c.category_key || c.key,
+              label: c.category_name || c.label,
             }))}
           />
 

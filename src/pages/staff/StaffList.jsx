@@ -9,7 +9,7 @@ import StaffViewModal from "./components/StaffViewModal";
 import StaffDeleteModal from "./components/StaffDeleteModal";
 import Loader from "../../shared/components/loader";
 
-// Static config - never re-created
+
 const statCards = [
   {
     key: "total",
@@ -37,7 +37,7 @@ const statCards = [
   },
 ];
 
-// Memoized stats section - only re-renders when stats change
+
 const StatsGrid = memo(function StatsGrid({ stats }) {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

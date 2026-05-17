@@ -3,6 +3,14 @@ import { Dropdown } from "antd";
 import { Eye, Edit3, MoreVertical, Play, Star, Trash2 } from "lucide-react";
 import CategoryBadge from "./CategoryBadge";
 
+const getThumbnailUrl = (url) => {
+  if (!url) return "https://images.unsplash.com/photo-1611532736597-de2d4265fba3?w=600&q=80";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
+    return url;
+  }
+  return `https://camp-coding.site/nourstaff/admin/${url}`;
+};
+
 const VideoCard = React.memo(
   ({ video, onView, onEdit, onDelete, onToggleFeatured }) => {
     const menuItems = useMemo(
@@ -44,7 +52,7 @@ const VideoCard = React.memo(
           className="group relative block w-full cursor-pointer"
         >
           <img
-            src={video.thumbnail}
+            src={getThumbnailUrl(video.thumbnail)}
             alt={video.title}
             className="h-[190px] w-full object-cover"
           />

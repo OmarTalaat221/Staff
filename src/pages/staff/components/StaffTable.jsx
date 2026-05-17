@@ -12,14 +12,14 @@ import {
 import { useNavigate } from "react-router-dom";
 import StaffStatusBadge from "./StaffStatusBadge";
 
-// Static pagination config - never re-created
+
 const paginationConfig = {
   pageSize: 10,
   showSizeChanger: false,
   showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} staff`,
 };
 
-// Memoized row actions component to prevent re-creating menu items
+
 const RowActions = memo(function RowActions({
   record,
   onView,
@@ -92,7 +92,7 @@ const StaffTable = memo(function StaffTable({
   onDelete,
   onToggleStatus,
 }) {
-  // Memoize columns - only recreate if action handlers change
+
   const columns = useMemo(
     () => [
       {

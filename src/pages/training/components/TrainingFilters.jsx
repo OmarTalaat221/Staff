@@ -31,10 +31,13 @@ const TrainingFilters = React.memo(
             value={selectedCategory}
             onChange={onCategoryChange}
             className="w-full sm:w-[180px]"
-            options={categories.map((item) => ({
-              value: item.id,
-              label: item.label,
-            }))}
+            options={[
+              { value: "all", label: "All Videos" },
+              ...categories.map((c) => ({
+                value: String(c.category_id),
+                label: c.category_name,
+              })),
+            ]}
           />
 
           <Select

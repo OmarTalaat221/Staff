@@ -94,6 +94,7 @@ const TrainingVideos = () => {
           onClose={handleCloseDrawer}
           onSubmit={handleSubmitVideo}
           loading={submitting}
+          categories={categories}
         />
       )}
 

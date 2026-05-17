@@ -4,7 +4,7 @@ import isoWeek from "dayjs/plugin/isoWeek";
 
 dayjs.extend(isoWeek);
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+
 
 const EXPECTED_MONTHLY_HOURS = 176;
 const EXPECTED_MONTHLY_MINS = EXPECTED_MONTHLY_HOURS * 60;
@@ -28,7 +28,7 @@ const ROLES = [
   "Cleaner",
 ];
 
-// ─── Staff List (matches useTransfers STAFF_MEMBERS + department added) ───────
+
 
 const STAFF_LIST = [
   {
@@ -105,7 +105,7 @@ const STAFF_LIST = [
 
 const staffMap = Object.fromEntries(STAFF_LIST.map((s) => [s.id, s]));
 
-// ─── Attendance Generator (same logic, deterministic) ────────────────────────
+
 
 const SHIFTS = [
   { name: "Morning", start: "08:00", end: "16:00" },
@@ -166,7 +166,7 @@ const generateAttendanceForStaff = (staffId) => {
   return records;
 };
 
-// ─── Attendance Cache ─────────────────────────────────────────────────────────
+
 
 const attendanceCache = {};
 
@@ -177,7 +177,7 @@ const getAttendance = (staffId) => {
   return attendanceCache[staffId];
 };
 
-// ─── Transfers Mock (matches useTransfers generateMockTransfers) ──────────────
+
 
 const buildTransfers = () => {
   const today = dayjs();
@@ -318,7 +318,7 @@ const buildTransfers = () => {
 
 const ALL_TRANSFERS = buildTransfers();
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 
 export const formatCurrency = (amount) =>
   new Intl.NumberFormat("en-EG", {
@@ -332,7 +332,7 @@ export const formatMinutes = (mins) => {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`;
 };
 
-// ─── Settlement Calculator per staff per month ────────────────────────────────
+
 
 const calcSettlement = (staff, monthStr) => {
   const attendance = getAttendance(staff.id);
@@ -403,7 +403,7 @@ const calcSettlement = (staff, monthStr) => {
   };
 };
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 
 export default function useSettlementsTab() {
   const [selectedMonth, setSelectedMonth] = useState(dayjs());
@@ -415,7 +415,7 @@ export default function useSettlementsTab() {
 
   const search = useDeferredValue(searchRaw);
 
-  // ── All settlements for selected month ──────────────────────────────────────
+
   const monthStr = useMemo(
     () => selectedMonth.format("YYYY-MM"),
     [selectedMonth]
@@ -426,7 +426,7 @@ export default function useSettlementsTab() {
     [monthStr]
   );
 
-  // ── Filtered rows ────────────────────────────────────────────────────────────
+
   const filteredSettlements = useMemo(() => {
     const q = search.trim().toLowerCase();
     return allSettlements.filter((row) => {
@@ -437,7 +437,7 @@ export default function useSettlementsTab() {
     });
   }, [allSettlements, search, department, role]);
 
-  // ── Stats (from allSettlements — full picture before search/filter) ──────────
+
   const stats = useMemo(() => {
     const totalPayroll = allSettlements.reduce((a, r) => a + r.baseSalary, 0);
     const totalDeductions = allSettlements.reduce(
@@ -452,10 +452,10 @@ export default function useSettlementsTab() {
     return { totalPayroll, totalDeductions, totalAdditions, netTotal };
   }, [allSettlements]);
 
-  // ── Derived ──────────────────────────────────────────────────────────────────
+
   const hasActiveFilters = !!(searchRaw || department || role);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────────
+
   const handleMonthChange = useCallback((d) => {
     setSelectedMonth(d || dayjs());
   }, []);
@@ -481,26 +481,26 @@ export default function useSettlementsTab() {
   }, []);
 
   return {
-    // state
+
     selectedMonth,
     searchRaw,
     department,
     role,
     hasActiveFilters,
 
-    // data
+
     stats,
     filteredSettlements,
 
-    // options
+
     departments: DEPARTMENTS,
     roles: ROLES,
 
-    // modal
+
     viewModalOpen,
     viewStaff,
 
-    // handlers
+
     handleMonthChange,
     handleSearchChange,
     handleDepartmentChange,

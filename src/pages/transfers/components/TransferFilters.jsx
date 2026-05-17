@@ -35,7 +35,7 @@ function TransferFilters({
 
   const staffOptions = useMemo(
     () => [
-      { value: null, label: "All Staff" },
+      { value: "", label: "All Staff" },
       ...staffMembers.map((s) => ({
         value: s.id,
         label: `${s.name} — ${s.role}`,
@@ -58,7 +58,7 @@ function TransferFilters({
         />
 
         <Select
-          value={filterStaffId}
+          value={filterStaffId || ""}
           onChange={onStaffChange}
           options={staffOptions}
           placeholder="All Staff"

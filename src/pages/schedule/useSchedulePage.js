@@ -146,8 +146,8 @@ export default function useSchedulePage() {
           endTime: item.end_time,
           breakStart: item.break_start,
           breakEnd: item.break_end,
-          // Calculate break minutes for stats
-          breakMinutes: item.break_start && item.break_end 
+
+          breakMinutes: item.break_start && item.break_end
             ? dayjs(`2000-01-01 ${item.break_end}`).diff(dayjs(`2000-01-01 ${item.break_start}`), 'minute')
             : 0,
           notes: item.notes,
@@ -172,27 +172,27 @@ export default function useSchedulePage() {
     fetchData();
   }, []);
 
-  // Drawer
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editShift, setEditShift] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [preSelectedDate, setPreSelectedDate] = useState(null);
   const [preSelectedShiftType, setPreSelectedShiftType] = useState(null);
 
-  // View
+
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewShift, setViewShift] = useState(null);
 
-  // Delete
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteShift, setDeleteShift] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  // Break
+
   const [breakModalOpen, setBreakModalOpen] = useState(false);
   const [breakPresets, setBreakPresets] = useState(BREAK_PRESETS);
 
-  // Week days
+
   const weekDays = useMemo(() => {
     const days = [];
     for (let i = 0; i < 7; i++) {
@@ -217,7 +217,7 @@ export default function useSchedulePage() {
     return `${currentWeekStart.format("MMM D")} - ${end.format("MMM D, YYYY")}`;
   }, [currentWeekStart]);
 
-  // Filtered shifts
+
   const filteredShifts = useMemo(() => {
     return shifts.filter((s) => {
       const inWeek = weekDays.some((d) => d.date === s.date);
@@ -227,7 +227,7 @@ export default function useSchedulePage() {
     });
   }, [shifts, weekDays, shiftTypeFilter, roleFilter]);
 
-  // Group shifts by date and shift type
+
   const groupedShifts = useMemo(() => {
     const grouped = {};
     weekDays.forEach((day) => {
@@ -245,7 +245,7 @@ export default function useSchedulePage() {
     return grouped;
   }, [filteredShifts, weekDays]);
 
-  // Stats
+
   const stats = useMemo(() => {
     const weekShifts = shifts.filter((s) =>
       weekDays.some((d) => d.date === s.date)
@@ -273,7 +273,7 @@ export default function useSchedulePage() {
 
   const hasActiveFilters = !!(shiftTypeFilter || roleFilter);
 
-  // Navigation
+
   const goToPrevWeek = useCallback(() => {
     setCurrentWeekStart((prev) => prev.subtract(7, "day"));
   }, []);
@@ -292,7 +292,7 @@ export default function useSchedulePage() {
     toast("Filters cleared", { icon: "✓" });
   }, []);
 
-  // CRUD
+
   const handleOpenAdd = useCallback((date, shiftType) => {
     setEditShift(null);
     setPreSelectedDate(date || null);
@@ -321,11 +321,11 @@ export default function useSchedulePage() {
         const staffMember = staffMembers.find((s) => s.id === values.staffId);
         const shiftConfig = SHIFT_TYPES.find((t) => t.key === values.shiftType);
 
-        // Map UI values to API payload
+
         const payload = {
           employee_id: values.staffId,
           shift_date: values.date,
-          shift_type: values.shiftType.charAt(0).toUpperCase() + values.shiftType.slice(1), // Capitalize
+          shift_type: values.shiftType.charAt(0).toUpperCase() + values.shiftType.slice(1),
           start_time: values.startTime || shiftConfig?.startTime,
           end_time: values.endTime || shiftConfig?.endTime,
           break_start: values.breakStart || "12:00",
@@ -401,7 +401,7 @@ export default function useSchedulePage() {
     }
   }, [deleteShift, handleCloseDelete]);
 
-  // Break Time
+
   const handleOpenBreakSettings = useCallback(() => {
     setBreakModalOpen(true);
   }, []);
@@ -422,7 +422,7 @@ export default function useSchedulePage() {
   }, []);
 
   return {
-    // Week
+
     currentWeekStart,
     weekDays,
     weekLabel,
@@ -430,7 +430,7 @@ export default function useSchedulePage() {
     goToNextWeek,
     goToToday,
 
-    // Data
+
     shifts: filteredShifts,
     groupedShifts,
     stats,
@@ -438,7 +438,7 @@ export default function useSchedulePage() {
     shiftTypes: SHIFT_TYPES,
     staffMembers,
 
-    // Filters
+
     shiftTypeFilter,
     setShiftTypeFilter,
     roleFilter,
@@ -446,7 +446,7 @@ export default function useSchedulePage() {
     hasActiveFilters,
     handleClearFilters,
 
-    // Drawer
+
     drawerOpen,
     editShift,
     drawerLoading,
@@ -457,13 +457,13 @@ export default function useSchedulePage() {
     handleCloseDrawer,
     handleSubmitShift,
 
-    // View
+
     viewModalOpen,
     viewShift,
     handleViewShift,
     handleCloseView,
 
-    // Delete
+
     deleteModalOpen,
     deleteShift,
     deleteLoading,
@@ -471,7 +471,7 @@ export default function useSchedulePage() {
     handleCloseDelete,
     handleConfirmDelete,
 
-    // Break
+
     breakModalOpen,
     breakPresets,
     handleOpenBreakSettings,

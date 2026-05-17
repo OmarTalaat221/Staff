@@ -16,14 +16,14 @@ export default function RotaDetails() {
   const [details, setDetails] = useState(null);
   const [staffMembers, setStaffMembers] = useState([]);
 
-  // Drawer & Edit States
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerLoading, setDrawerLoading] = useState(false);
   const [editShift, setEditShift] = useState(null);
   const [preSelectedDay, setPreSelectedDay] = useState(null);
   const [preSelectedStaffId, setPreSelectedStaffId] = useState(null);
 
-  // 1. Data Fetching
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -58,7 +58,7 @@ export default function RotaDetails() {
     fetchData();
   }, [id]);
 
-  // 2. Computed Values (Hooks)
+
   const rotaMonth = useMemo(() => {
     const name = details?.rota_name || "";
     if (name.includes("يناير")) return 1;
@@ -121,7 +121,7 @@ export default function RotaDetails() {
     return Object.values(dailyCosts).reduce((acc, curr) => acc + curr, 0);
   }, [dailyCosts]);
 
-  // 3. Event Handlers
+
   const handleOpenAdd = (day, staffId) => {
     setEditShift(null);
     setPreSelectedDay(day);
@@ -187,7 +187,7 @@ export default function RotaDetails() {
     }
   };
 
-  // 4. Columns Definition
+
   const columns = useMemo(() => {
     const cols = [
       {
@@ -272,7 +272,7 @@ export default function RotaDetails() {
       });
     });
 
-    // Add Final Total Column for each Employee
+
     cols.push({
       title: (
         <div className="text-center">

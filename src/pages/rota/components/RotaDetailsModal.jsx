@@ -10,9 +10,9 @@ const RotaDetailsModal = memo(function RotaDetailsModal({
   loading
 }) {
   const [dayOffset, setDayOffset] = useState(0);
-  const DAYS_PER_PAGE = 7; // Show 1 week at a time as requested
+  const DAYS_PER_PAGE = 7;
 
-  // Try to determine the month from the rota name (e.g., "يونيو" -> 6)
+
   const rotaMonth = useMemo(() => {
     const name = details?.rota_name || "";
     if (name.includes("يناير")) return 1;
@@ -27,10 +27,10 @@ const RotaDetailsModal = memo(function RotaDetailsModal({
     if (name.includes("أكتوبر")) return 10;
     if (name.includes("نوفمبر")) return 11;
     if (name.includes("ديسمبر")) return 12;
-    return 6; // Default to June
+    return 6;
   }, [details]);
 
-  // Extract all unique day numbers from the data
+
   const allDayNumbers = useMemo(() => {
     if (!details?.data) return Array.from({ length: 31 }, (_, i) => i + 1);
     const days = new Set();
@@ -39,11 +39,11 @@ const RotaDetailsModal = memo(function RotaDetailsModal({
         days.add(Number(shift.day_number));
       });
     });
-    
-    // If no shifts, assume a full month of 31 days
+
+
     if (days.size === 0) return Array.from({ length: 31 }, (_, i) => i + 1);
-    
-    // Find the max day number to show at least until then
+
+
     const maxDay = Math.max(...Array.from(days), 31);
     return Array.from({ length: maxDay }, (_, i) => i + 1);
   }, [details]);
@@ -88,7 +88,7 @@ const RotaDetailsModal = memo(function RotaDetailsModal({
         render: (_, record) => {
           const staffInDetails = details?.data?.find(d => String(d.employee_id) === String(record.id));
           const shift = staffInDetails?.shifts?.find(s => Number(s.day_number) === day);
-          
+
           if (!shift) return <div className="h-[60px] flex items-center justify-center"><span className="text-text/10">—</span></div>;
 
           return (
@@ -139,8 +139,8 @@ const RotaDetailsModal = memo(function RotaDetailsModal({
             </div>
           </div>
           <Space>
-            <Button 
-              icon={<ChevronLeft size={16} />} 
+            <Button
+              icon={<ChevronLeft size={16} />}
               onClick={handlePrevDays}
               disabled={dayOffset === 0}
               size="small"
@@ -150,8 +150,8 @@ const RotaDetailsModal = memo(function RotaDetailsModal({
             <div className="text-xs font-semibold px-2">
               Days {dayOffset + 1} - {Math.min(dayOffset + DAYS_PER_PAGE, allDayNumbers.length)}
             </div>
-            <Button 
-              icon={<ChevronRight size={16} />} 
+            <Button
+              icon={<ChevronRight size={16} />}
               onClick={handleNextDays}
               disabled={dayOffset + DAYS_PER_PAGE >= allDayNumbers.length}
               size="small"
@@ -181,7 +181,8 @@ const RotaDetailsModal = memo(function RotaDetailsModal({
         />
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .rota-details-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
           padding: 8px !important;

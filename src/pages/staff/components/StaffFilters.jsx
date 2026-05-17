@@ -3,7 +3,7 @@ import { Input, Select, Button } from "antd";
 import { Search, X } from "lucide-react";
 import { ROLES, DEPARTMENTS, STATUSES } from "../useStaffPage";
 
-// Pre-compute options outside component - never re-created
+
 const roleOptions = ROLES?.map((r) => ({ label: r, value: r }));
 const departmentOptions = DEPARTMENTS?.map((d) => ({ label: d, value: d }));
 const statusOptions = STATUSES?.map((s) => ({
