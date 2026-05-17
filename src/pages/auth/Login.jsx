@@ -168,14 +168,14 @@ export default function Login() {
         </div>
 
         {/* Demo hint */}
-        <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl">
+        {/* <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl">
           <p className="text-center text-text/60 text-xs">
             Demo: username{" "}
             <span className="text-primary font-semibold">admin</span>
             {" / "}password{" "}
             <span className="text-primary font-semibold">admin123</span>
           </p>
-        </div>
+        </div> */}
 
         <p className="text-center text-text/40 text-xs mt-4">
           Internal management system — NOUR MAISON
