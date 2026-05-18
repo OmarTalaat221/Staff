@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   CalendarDays,
+  ClipboardCheck,
   TreePalm,
   Banknote,
   ArrowLeftRight,
@@ -29,6 +30,12 @@ const menuItems = [
     label: "Schedule",
     icon: CalendarDays,
     path: "/schedule",
+  },
+  {
+    key: "attendance",
+    label: "Attendance",
+    icon: ClipboardCheck,
+    path: "/attendance",
   },
   {
     key: "rota",

@@ -17,6 +17,7 @@ import RotaList from "../pages/rota/RotaList";
 import RotaDetails from "../pages/rota/RotaDetails";
 import CreateRotaPage from "../pages/rota/CreateRotaPage";
 import Expenses from "../pages/expenses/Expenses";
+import Attendance from "../pages/attendance/Attendance";
 
 export default function AppRouter() {
   return (
@@ -36,6 +37,7 @@ export default function AppRouter() {
           <Route path="/dashboard" element={<DashboardHome />} />
           <Route path="/staff" element={<StaffList />} />
           <Route path="/staff/:id" element={<StaffProfile />} />
+          <Route path="/attendance" element={<Attendance />} />
 
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/rota" element={<RotaList />} />
