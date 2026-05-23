@@ -45,63 +45,67 @@ function TransferFilters({
   );
 
   return (
-    <div className="bg-surface rounded-2xl border border-border p-4">
-      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-        <Input
-          placeholder="Search by name, reference, or note..."
-          prefix={<Search size={16} className="text-text/30" />}
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          allowClear
-          className="sm:max-w-[300px]"
-          style={{ height: 42 }}
-        />
-
-        <Select
-          value={filterStaffId || ""}
-          onChange={onStaffChange}
-          options={staffOptions}
-          placeholder="All Staff"
-          className="sm:w-[200px]"
-          style={{ height: 42 }}
-          showSearch
-          optionFilterProp="label"
-        />
-
-        <Select
-          value={filterType}
-          onChange={onTypeChange}
-          options={typeOptions}
-          className="sm:w-[150px]"
-          style={{ height: 42 }}
-        />
-
-        <Select
-          value={filterStatus}
-          onChange={onStatusChange}
-          options={statusOptions}
-          className="sm:w-[155px]"
-          style={{ height: 42 }}
-        />
-
-        <Select
-          value={filterMethod}
-          onChange={onMethodChange}
-          options={methodOptions}
-          className="sm:w-[165px]"
-          style={{ height: 42 }}
-        />
-
-        {hasActiveFilters && (
-          <Button
-            onClick={onClearFilters}
-            icon={<X size={14} />}
-            className="flex items-center gap-1"
+    <div className="bg-surface rounded-3xl border border-border p-4">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
+          <Input
+            placeholder="Search by name, reference, or note..."
+            prefix={<Search size={16} className="text-text/30" />}
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            allowClear
+            className="sm:min-w-[300px]"
             style={{ height: 42 }}
-          >
-            Clear
-          </Button>
-        )}
+          />
+
+          <Select
+            value={filterStaffId || ""}
+            onChange={onStaffChange}
+            options={staffOptions}
+            placeholder="All Staff"
+            className="sm:min-w-[220px]"
+            style={{ height: 42 }}
+            showSearch
+            optionFilterProp="label"
+          />
+
+          <Select
+            value={filterType}
+            onChange={onTypeChange}
+            options={typeOptions}
+            className="sm:min-w-[160px]"
+            style={{ height: 42 }}
+          />
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
+          <Select
+            value={filterStatus}
+            onChange={onStatusChange}
+            options={statusOptions}
+            className="sm:min-w-[160px]"
+            style={{ height: 42 }}
+          />
+
+          <Select
+            value={filterMethod}
+            onChange={onMethodChange}
+            options={methodOptions}
+            className="sm:min-w-[180px]"
+            style={{ height: 42 }}
+          />
+
+          {hasActiveFilters && (
+            <Button
+              onClick={onClearFilters}
+              icon={<X size={14} />}
+              className="flex items-center gap-1"
+              style={{ height: 42 }}
+            >
+              Clear
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

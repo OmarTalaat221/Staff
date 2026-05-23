@@ -138,16 +138,19 @@ const StaffDrawer = memo(function StaffDrawer({
           </Form.Item>
 
           {/* Price Type */}
+
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> */}
           <Form.Item
-            name="salary_type"
-            label={<span className="text-text text-sm font-medium">Salary Type</span>}
-            rules={[{ required: true, message: "Price Type is required" }]}
+            name="joinDate"
+            label={
+              <span className="text-text text-sm font-medium">Join Date</span>
+            }
+            rules={[{ required: true, message: "Join date is required" }]}
           >
-            <Select placeholder="Select Price Type">
-              <Option value="monthly">Monthly</Option>
-              <Option value="yearly">Yearly</Option>
-            </Select>
+            <DatePicker className="w-full" format="YYYY-MM-DD" />
           </Form.Item>
+
+          {/* </div> */}
           {/* Password */}
           {!isEdit && (
             <Form.Item
@@ -171,39 +174,45 @@ const StaffDrawer = memo(function StaffDrawer({
               options={departmentOptions}
             />
           </Form.Item>
+            <Form.Item
+          name="salary_type"
+          label={<span className="text-text text-sm font-medium">Salary Type</span>}
+          rules={[{ required: true, message: "Price Type is required" }]}
+        >
+          <Select placeholder="Select Price Type">
+            <Option value="hourly">Hourly</Option>
+            <Option value="monthly">Monthly</Option>
+          </Select>
+        </Form.Item>
+        <Form.Item shouldUpdate={(prev, cur) => prev.salary_type !== cur.salary_type}>
+          {() => {
+            const salaryType = form.getFieldValue("salary_type");
+            const rateLabel = salaryType === "monthly" ? "monthly rate" : "hour rate";
+            return (
+              <Form.Item
+                name="salary"
+                label={
+                  <span className="text-text text-sm font-medium">
+                    {rateLabel}
+                  </span>
+                }
+                rules={[{ required: true, message: "Salary is required" }]}
+              >
+                <InputNumber
+                  className="w-full!"
+                  min={0}
+                  step={500}
+                  placeholder="0"
+                  formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+                  parser={(v) => v.replace(/,/g, "")}
+                />
+              </Form.Item>
+            );
+          }}
+        </Form.Item>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Form.Item
-            name="joinDate"
-            label={
-              <span className="text-text text-sm font-medium">Join Date</span>
-            }
-            rules={[{ required: true, message: "Join date is required" }]}
-          >
-            <DatePicker className="w-full" format="YYYY-MM-DD" />
-          </Form.Item>
-
-          <Form.Item
-            name="salary"
-            label={
-              <span className="text-text text-sm font-medium">
-                Our Rate
-              </span>
-            }
-            rules={[{ required: true, message: "Salary is required" }]}
-          >
-            <InputNumber
-              className="w-full!"
-              min={0}
-              step={500}
-              placeholder="0"
-              formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
-              parser={(v) => v.replace(/,/g, "")}
-            />
-          </Form.Item>
-        </div>
-
+      
         <Form.Item
           name="status"
           label={<span className="text-text text-sm font-medium">Status</span>}

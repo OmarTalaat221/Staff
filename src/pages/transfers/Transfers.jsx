@@ -32,16 +32,16 @@ const formatCurrency = (amount) =>
 
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
-  <div className="bg-surface rounded-2xl border border-border p-4 flex items-center gap-3">
+  <div className="bg-surface rounded-2xl border border-border p-5 flex items-center gap-4 min-h-[110px]">
     <div
-      className="w-10 h-10 rounded-xl flex items-center justify-center"
+      className="w-12 h-12 rounded-2xl flex items-center justify-center"
       style={{ backgroundColor: `${color}15` }}
     >
-      <Icon size={20} style={{ color }} />
+      <Icon size={22} style={{ color }} />
     </div>
     <div>
       <p className="text-2xl font-bold text-text">{value}</p>
-      <p className="text-xs text-text/50 mt-0.5">{label}</p>
+      <p className="text-xs text-text/50 mt-1">{label}</p>
     </div>
   </div>
 );
@@ -102,30 +102,31 @@ export default function Transfers() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-text">Transfers</h1>
-          <p className="text-sm text-text/50 mt-1">
-            Manage salaries, bonuses, advances, deductions and reimbursements
-          </p>
+      <div className="bg-surface border border-border rounded-3xl p-6">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-text">Transfers</h1>
+            <p className="text-sm text-text/60 mt-1 max-w-2xl">
+              Manage salaries, bonuses, advances, deductions and reimbursements with clear status tracking and fast action controls.
+            </p>
+          </div>
+
+          {activeTab === "transfers" && (
+            <Button
+              type="primary"
+              icon={<Plus size={18} />}
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 px-6"
+              style={{ height: 44 }}
+            >
+              New Transfer
+            </Button>
+          )}
         </div>
 
-        {activeTab === "transfers" && (
-          <Button
-            type="primary"
-            icon={<Plus size={18} />}
-            onClick={handleOpenAdd}
-            className="flex items-center gap-2"
-            style={{ height: 44 }}
-          >
-            New Transfer
-          </Button>
-        )}
-      </div>
-
-      {/* Tab Bar */}
-      <div className="flex gap-1 border-b border-border">
+        {/* Tab Bar */}
+        <div className="flex gap-1 mt-6 border-b border-border">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const active = activeTab === tab.key;
@@ -143,6 +144,7 @@ export default function Transfers() {
             </button>
           );
         })}
+      </div>
       </div>
 
       {/* Tab 1 — Transfers (unchanged content) */}
@@ -181,7 +183,7 @@ export default function Transfers() {
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-2 lg:grid-cols-7 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-4 mt-6">
             <StatCard
               icon={TransferIcon}
               label="Total"
@@ -227,36 +229,40 @@ export default function Transfers() {
           </div>
 
           {/* Filters */}
-          <TransferFilters
-            search={search}
-            onSearchChange={setSearch}
-            filterStatus={filterStatus}
-            onStatusChange={setFilterStatus}
-            filterType={filterType}
-            onTypeChange={handleFilterByType}
-            filterMethod={filterMethod}
-            onMethodChange={setFilterMethod}
-            filterStaffId={filterStaffId}
-            onStaffChange={handleFilterByStaff}
-            transferTypes={transferTypes}
-            paymentMethods={paymentMethods}
-            staffMembers={staffMembers}
-            hasActiveFilters={hasActiveFilters}
-            onClearFilters={handleClearFilters}
-          />
+          <div className="bg-white border border-border rounded-3xl p-5 shadow-sm">
+            <TransferFilters
+              search={search}
+              onSearchChange={setSearch}
+              filterStatus={filterStatus}
+              onStatusChange={setFilterStatus}
+              filterType={filterType}
+              onTypeChange={handleFilterByType}
+              filterMethod={filterMethod}
+              onMethodChange={setFilterMethod}
+              filterStaffId={filterStaffId}
+              onStaffChange={handleFilterByStaff}
+              transferTypes={transferTypes}
+              paymentMethods={paymentMethods}
+              staffMembers={staffMembers}
+              hasActiveFilters={hasActiveFilters}
+              onClearFilters={handleClearFilters}
+            />
+          </div>
 
           {/* Table */}
-          <TransferTable
-            transfers={transfers}
-            loading={loading}
-            onView={handleViewTransfer}
-            onEdit={handleOpenEdit}
-            onDelete={handleOpenDelete}
-            onMarkCompleted={handleMarkCompleted}
-            onMarkProcessing={handleMarkProcessing}
-            onRetry={handleRetry}
-            onFilterByStaff={handleFilterByStaff}
-          />
+          <div className="bg-white border border-border rounded-3xl shadow-sm overflow-hidden">
+            <TransferTable
+              transfers={transfers}
+              loading={loading}
+              onView={handleViewTransfer}
+              onEdit={handleOpenEdit}
+              onDelete={handleOpenDelete}
+              onMarkCompleted={handleMarkCompleted}
+              onMarkProcessing={handleMarkProcessing}
+              onRetry={handleRetry}
+              onFilterByStaff={handleFilterByStaff}
+            />
+          </div>
 
           {/* Drawer */}
           {drawerOpen && (

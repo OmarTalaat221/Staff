@@ -39,8 +39,31 @@ export default function RotaDetails() {
   // Monthly Shift Drawer States
   const [monthlyDrawerOpen, setMonthlyDrawerOpen] = useState(false);
   const [monthlyStaff, setMonthlyStaff] = useState(null);
+  const [monthlyType, setMonthlyType] = useState('full_month');
+  const [monthlySelectedDates, setMonthlySelectedDates] = useState([]);
+  const [monthlySelectedWeekdays, setMonthlySelectedWeekdays] = useState([]);
   const [monthlyForm] = Form.useForm();
 
+  const WEEKDAY_OPTIONS = [
+    { label: 'Sunday', value: 0 },
+    { label: 'Monday', value: 1 },
+    { label: 'Tuesday', value: 2 },
+    { label: 'Wednesday', value: 3 },
+    { label: 'Thursday', value: 4 },
+    { label: 'Friday', value: 5 },
+    { label: 'Saturday', value: 6 }
+  ];
+
+  const EXPECTED_MONTHLY_HOURS = 176;
+
+  const getHourlyRate = (salaryAmount, salaryType) => {
+    const amount = Number(salaryAmount) || 0;
+    const type = String(salaryType || '').toLowerCase();
+    if (type === 'monthly') {
+      return amount / EXPECTED_MONTHLY_HOURS;
+    }
+    return amount;
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -165,22 +188,43 @@ export default function RotaDetails() {
 
   const handleSaveMonthlyShifts = async (values) => {
     if (!monthlyStaff) return;
+
+    if (monthlyType === 'dates' && monthlySelectedDates.length === 0) {
+      toast.error('Please choose at least one date');
+      return;
+    }
+
+    if (monthlyType === 'weekdays' && monthlySelectedWeekdays.length === 0) {
+      toast.error('Please choose at least one weekday');
+      return;
+    }
+
     setDrawerLoading(true);
     try {
-      const daysCount = dayjs(`${rotaYear}-${rotaMonth}-01`).daysInMonth();
-      const shiftsArray = [];
+      const selectedDays = monthDays.filter((day) => {
+        if (monthlyType === 'full_month') return true;
+        if (monthlyType === 'dates') return monthlySelectedDates.includes(day);
+        if (monthlyType === 'weekdays') {
+          const dateObj = dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+          return monthlySelectedWeekdays.includes(dateObj.day());
+        }
+        return false;
+      });
 
-      for (let day = 1; day <= daysCount; day++) {
-        shiftsArray.push({
-          day_number: String(day),
-          shift_type: 'Morning',
-          start_time: values.times[0].format('HH:mm:ss'),
-          end_time: values.times[1].format('HH:mm:ss'),
-          break_start: values.break_times?.[0]?.format('HH:mm:ss') || null,
-          break_end: values.break_times?.[1]?.format('HH:mm:ss') || null,
-          notes: values.notes || ""
-        });
+      if (selectedDays.length === 0) {
+        toast.error('No days selected for monthly shifts');
+        return;
       }
+
+      const shiftsArray = selectedDays.map((day) => ({
+        day_number: String(day),
+        shift_type: 'Morning',
+        start_time: values.times[0].format('HH:mm:ss'),
+        end_time: values.times[1].format('HH:mm:ss'),
+        break_start: values.break_times?.[0]?.format('HH:mm:ss') || null,
+        break_end: values.break_times?.[1]?.format('HH:mm:ss') || null,
+        notes: values.notes || ""
+      }));
 
       const payload = {
         rota_id: Number(id),
@@ -196,9 +240,12 @@ export default function RotaDetails() {
 
       const response = await addRotaShifts(payload);
       if (response && response.status === "success") {
-        toast.success(`Assigned ${shiftsArray.length} shifts for the month successfully!`);
+        toast.success(`Assigned ${shiftsArray.length} shifts successfully!`);
         setMonthlyDrawerOpen(false);
         setMonthlyStaff(null);
+        setMonthlyType('full_month');
+        setMonthlySelectedDates([]);
+        setMonthlySelectedWeekdays([]);
         monthlyForm.resetFields();
         fetchData();
       } else {
@@ -235,6 +282,27 @@ export default function RotaDetails() {
     return yearMatch ? parseInt(yearMatch[0]) : dayjs().year();
   }, [details]);
 
+  const monthDays = useMemo(() => {
+    if (!rotaMonth || !rotaYear) return [];
+    const daysCount = dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-01`).daysInMonth();
+    return Array.from({ length: daysCount }, (_, i) => i + 1);
+  }, [rotaMonth, rotaYear]);
+
+  const selectedMonthLabels = useMemo(() => {
+    if (monthlyType === 'full_month') {
+      return monthDays.map(day => dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`).format('MMM D'));
+    }
+    if (monthlyType === 'dates') {
+      return monthlySelectedDates.map(day => dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`).format('MMM D'));
+    }
+    if (monthlyType === 'weekdays') {
+      return monthDays
+        .filter(day => monthlySelectedWeekdays.includes(dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`).day()))
+        .map(day => dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`).format('MMM D'));
+    }
+    return [];
+  }, [monthlyType, monthlySelectedDates, monthlySelectedWeekdays, monthDays, rotaMonth, rotaYear]);
+
   const allDayNumbers = useMemo(() => {
     if (!details?.data) return Array.from({ length: 31 }, (_, i) => i + 1);
     const days = new Set();
@@ -257,13 +325,15 @@ export default function RotaDetails() {
         const shifts = staffInDetails?.shifts?.filter(s => Number(s.day_number) === day) || [];
 
         shifts.forEach(shift => {
-          const currentSalary = parseFloat(staffInDetails?.salary_info?.salary_amount ?? staff.salary ?? 0);
-          if (currentSalary > 0) {
+          const rawSalary = parseFloat(staffInDetails?.salary_info?.salary_amount ?? staff.salary ?? 0);
+          const salaryType = staffInDetails?.salary_info?.salary_type ?? staff.salary_type ?? 'hourly';
+          const hourlyRate = getHourlyRate(rawSalary, salaryType);
+          if (hourlyRate > 0) {
             const start = dayjs(`2000-01-01 ${shift.start_time}`);
             let end = dayjs(`2000-01-01 ${shift.end_time}`);
             if (end.isBefore(start)) end = end.add(1, "day");
             const hours = end.diff(start, "hour", true);
-            dailyTotal += currentSalary * hours;
+            dailyTotal += hourlyRate * hours;
           }
         });
       });
@@ -538,9 +608,11 @@ export default function RotaDetails() {
             if (end.isBefore(start)) end = end.add(1, "day");
             const hours = end.diff(start, "hour", true);
             employeeTotalHours += hours;
-            const currentSalary = parseFloat(staffInDetails?.salary_info?.salary_amount ?? record.salary ?? 0);
-            if (currentSalary > 0) {
-              employeeTotal += currentSalary * hours;
+            const rawSalary = parseFloat(staffInDetails?.salary_info?.salary_amount ?? record.salary ?? 0);
+            const salaryType = staffInDetails?.salary_info?.salary_type ?? record.salary_type ?? 'hourly';
+            const hourlyRate = getHourlyRate(rawSalary, salaryType);
+            if (hourlyRate > 0) {
+              employeeTotal += hourlyRate * hours;
             }
           });
         });
@@ -734,6 +806,9 @@ export default function RotaDetails() {
         onClose={() => {
           setMonthlyDrawerOpen(false);
           setMonthlyStaff(null);
+          setMonthlyType('full_month');
+          setMonthlySelectedDates([]);
+          setMonthlySelectedWeekdays([]);
           monthlyForm.resetFields();
         }}
         open={monthlyDrawerOpen}
@@ -742,6 +817,9 @@ export default function RotaDetails() {
             <Button onClick={() => {
               setMonthlyDrawerOpen(false);
               setMonthlyStaff(null);
+              setMonthlyType('full_month');
+              setMonthlySelectedDates([]);
+              setMonthlySelectedWeekdays([]);
               monthlyForm.resetFields();
             }}>
               Cancel
@@ -762,6 +840,75 @@ export default function RotaDetails() {
           layout="vertical"
           onFinish={handleSaveMonthlyShifts}
         >
+          <Form.Item label="Apply To">
+            <Radio.Group value={monthlyType} onChange={(e) => setMonthlyType(e.target.value)}>
+              <Space direction="vertical">
+                <Radio value="full_month">Full month</Radio>
+                <Radio value="dates">Select dates</Radio>
+                <Radio value="weekdays">Select weekdays</Radio>
+              </Space>
+            </Radio.Group>
+          </Form.Item>
+
+          {monthlyType === 'dates' && (
+            <div className="space-y-4 mb-4">
+              <div className="text-sm font-semibold">Select dates to assign shifts</div>
+              <div className="grid grid-cols-7 gap-2 max-h-48 overflow-y-auto pr-1">
+                {monthDays.map((day) => {
+                  const active = monthlySelectedDates.includes(day);
+                  return (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => {
+                        setMonthlySelectedDates((prev) =>
+                          prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day]
+                        );
+                      }}
+                      className={`text-xs font-semibold h-10 rounded-xl border transition-colors ${
+                        active
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-surface text-text border-border hover:border-text/30'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {monthlyType === 'weekdays' && (
+            <div className="space-y-4 mb-4">
+              <div className="text-sm font-semibold">Select weekdays</div>
+              <Checkbox.Group
+                options={WEEKDAY_OPTIONS}
+                value={monthlySelectedWeekdays}
+                onChange={(values) => setMonthlySelectedWeekdays(values)}
+              />
+              <div className="text-xs text-text/60">
+                The selected weekdays will be applied to every matching day in the month.
+              </div>
+            </div>
+          )}
+
+          <div className="mb-4 px-3 py-3 rounded-2xl bg-primary/5 border border-primary/10">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <span>{monthlyType === 'full_month' ? 'Full month selected' : `${selectedMonthLabels.length} days selected`}</span>
+            </div>
+            {selectedMonthLabels.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {selectedMonthLabels.slice(0, 8).map((label) => (
+                  <Tag key={label} color="blue">{label}</Tag>
+                ))}
+                {selectedMonthLabels.length > 8 && (
+                  <Tag color="geekblue">+{selectedMonthLabels.length - 8} more</Tag>
+                )}
+              </div>
+            )}
+          </div>
+
           <Form.Item
             name="times"
             label="Work Hours"
@@ -875,12 +1022,38 @@ export default function RotaDetails() {
 
       <style dangerouslySetInnerHTML={{
         __html: `
+        .rota-details-compact-table .ant-table {
+          border-radius: 24px;
+          overflow: hidden;
+        }
         .rota-details-compact-table .ant-table-thead > tr > th {
           background: #f8fafc !important;
-          padding: 6px 4px !important;
+          padding: 10px 8px !important;
+          color: #344054 !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          line-height: 1.3 !important;
+          text-transform: uppercase !important;
+          border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+          position: sticky !important;
+          top: 0;
+          z-index: 30;
         }
-        .rota-details-compact-table .ant-table-cell {
-          padding: 4px !important;
+        .rota-details-compact-table .ant-table-tbody > tr > td {
+          padding: 8px 10px !important;
+          border-bottom: 1px solid rgba(15, 23, 42, 0.08) !important;
+          background: #ffffff;
+        }
+        .rota-details-compact-table .ant-table-tbody > tr:hover > td {
+          background: rgba(15, 23, 42, 0.03);
+        }
+        .rota-details-compact-table .ant-table-summary {
+          background: #f7fdfa;
+        }
+        .rota-details-compact-table .ant-table-summary > tr > td {
+          padding: 10px 8px !important;
+          font-size: 11px !important;
+          color: #0f172a;
         }
         .rota-details-compact-table .ant-table-cell-fix-left,
         .rota-details-compact-table .ant-table-cell-fix-right {

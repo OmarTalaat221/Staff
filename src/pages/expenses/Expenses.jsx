@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Space, Popconfirm, Tooltip, Card } from "antd";
+import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Space, Popconfirm, Tooltip, Card, Select } from "antd";
 import { Plus, Edit2, Trash2, Search, DollarSign, Calendar, FileText, TrendingUp, X } from "lucide-react";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import { getExpenses, addExpense, updateExpense, deleteExpense } from "../../features/Expenses/expenseService";
+
+// default expense titles to show before/alongside API and saved values
+const DEFAULT_EXPENSE_TITLES = [
+  "صيانة تكييفات",
+  "قطع غيار",
+  "أجور عامل",
+  "Office Supplies",
+  "Transportation",
+];
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <div className="bg-surface rounded-2xl border border-border p-5 flex items-center gap-4 transition-all hover:shadow-md hover:border-text/10">
@@ -27,17 +36,40 @@ export default function Expenses() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [expenseTitles, setExpenseTitles] = useState([]);
 
   // Filters state
   const [searchText, setSearchText] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedTitleFilter, setSelectedTitleFilter] = useState(null);
 
   const fetchExpenses = async () => {
     setLoading(true);
     try {
       const response = await getExpenses();
       if (response && response.status === "success") {
-        setExpenses(response.data || []);
+        const data = response.data || [];
+        setExpenses(data);
+
+        // extract unique titles from API data and merge with defaults + saved
+        try {
+          const apiTitles = Array.from(
+            new Set(data.map((it) => (it && it.title ? String(it.title).trim() : null)).filter(Boolean))
+          );
+
+          const rawSaved = localStorage.getItem('expense_titles');
+          const saved = rawSaved ? JSON.parse(rawSaved) : [];
+
+          const merged = Array.from(new Set([...DEFAULT_EXPENSE_TITLES, ...(Array.isArray(saved) ? saved : []), ...apiTitles]));
+          setExpenseTitles(merged);
+          try {
+            localStorage.setItem('expense_titles', JSON.stringify(merged));
+          } catch (e) {
+            console.error('Failed to persist merged expense titles', e);
+          }
+        } catch (e) {
+          console.error('Failed to merge expense titles from API', e);
+        }
       } else {
         toast.error("Failed to fetch expenses");
       }
@@ -52,6 +84,40 @@ export default function Expenses() {
   useEffect(() => {
     fetchExpenses();
   }, []);
+
+  useEffect(() => {
+    // load saved expense titles from localStorage and include defaults
+    try {
+      const raw = localStorage.getItem('expense_titles');
+      const list = raw ? JSON.parse(raw) : [];
+      const merged = Array.from(new Set([...(Array.isArray(list) ? list : []), ...DEFAULT_EXPENSE_TITLES]));
+      setExpenseTitles(merged);
+      // ensure stored value contains merged list
+      try {
+        localStorage.setItem('expense_titles', JSON.stringify(merged));
+      } catch (e) {
+        /* ignore */
+      }
+    } catch (e) {
+      console.error('Failed to load expense titles', e);
+    }
+  }, []);
+
+  const saveExpenseTitle = (title) => {
+    if (!title) return;
+    const t = String(title).trim();
+    if (!t) return;
+    setExpenseTitles((prev) => {
+      if (prev.includes(t)) return prev;
+      const next = [t, ...prev].slice(0, 100);
+      try {
+        localStorage.setItem('expense_titles', JSON.stringify(next));
+      } catch (e) {
+        console.error('Failed to save expense titles', e);
+      }
+      return next;
+    });
+  };
 
   // Compute stats
   const stats = useMemo(() => {
@@ -83,37 +149,82 @@ export default function Expenses() {
         !selectedMonth ||
         (item.expense_month || item.expense_date?.slice(0, 7)) === selectedMonth.format("YYYY-MM");
 
-      return matchesSearch && matchesMonth;
+      const matchesTitle = !selectedTitleFilter || (item.title === selectedTitleFilter);
+
+      return matchesSearch && matchesMonth && matchesTitle;
     });
-  }, [expenses, searchText, selectedMonth]);
+  }, [expenses, searchText, selectedMonth, selectedTitleFilter]);
 
   const handleOpenAdd = () => {
     setEditingExpense(null);
     form.resetFields();
     form.setFieldsValue({
-      expense_date: dayjs(),
+      // default to first day of current month/year as selects
+      expense_month: String(dayjs().month() + 1).padStart(2, '0'),
+      expense_year: String(dayjs().year()),
+      title: undefined,
+      custom_title: undefined,
     });
     setModalOpen(true);
   };
 
   const handleOpenEdit = (record) => {
     setEditingExpense(record);
+    // if title exists in known titles, set it; otherwise use Other + custom_title
+    const known = expenseTitles.includes(record.title);
+    // parse existing expense_date to month/year if possible
+    let month = String(dayjs().month() + 1).padStart(2, '0');
+    let year = String(dayjs().year());
+    if (record.expense_date) {
+      try {
+        const d = dayjs(record.expense_date, ['YYYY-MM-DD', 'DD-MM-YYYY', 'DD - MM - YYYY', 'DD - MM - YYYY']);
+        if (d.isValid()) {
+          month = String(d.month() + 1).padStart(2, '0');
+          year = String(d.year());
+        } else {
+          const m = String(record.expense_date).match(/(\d{1,2})\D*(\d{1,2})\D*(\d{4})/);
+          if (m) {
+            // m[1]=day m[2]=month m[3]=year
+            month = String(m[2]).padStart(2, '0');
+            year = String(m[3]);
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
     form.setFieldsValue({
-      title: record.title,
+      title: known ? record.title : "__other__",
+      // custom_title: known ? undefined : record.title,
       amount: parseFloat(record.amount),
-      expense_date: dayjs(record.expense_date),
+      expense_month: month,
+      expense_year: year,
       notes: record.notes,
     });
+    if (record.title && known) saveExpenseTitle(record.title);
     setModalOpen(true);
   };
 
   const handleSubmit = async (values) => {
     setSubmitLoading(true);
     try {
+      // determine title from select or custom field and persist locally
+      let titleValue = values.title;
+      if (titleValue === "__other__") titleValue = values.title;
+      if (Array.isArray(titleValue)) titleValue = titleValue[0];
+      if (titleValue) saveExpenseTitle(titleValue);
+
+      // compose ISO expense_date as 'YYYY-MM-01'
+      const month = String(values.expense_month).padStart(2, '0');
+      const year = String(values.expense_year);
+      const expenseDateISO = `${year}-${month}-01`;
+
       const payload = {
-        title: values.title,
+        title: titleValue,
         amount: values.amount.toString(),
-        expense_date: values.expense_date.format("YYYY-MM-DD"),
+        expense_date: expenseDateISO,
+        expense_month: month,
         notes: values.notes || "",
       };
 
@@ -155,11 +266,12 @@ export default function Expenses() {
     }
   };
 
-  const hasActiveFilters = searchText || selectedMonth;
+  const hasActiveFilters = searchText || selectedMonth || selectedTitleFilter;
 
   const handleClearFilters = () => {
     setSearchText("");
     setSelectedMonth(null);
+    setSelectedTitleFilter(null);
   };
 
   const columns = [
@@ -190,11 +302,22 @@ export default function Expenses() {
       dataIndex: "expense_date",
       key: "expense_date",
       width: 140,
-      render: (date) => (
-        <span className="text-text/70 text-xs font-semibold">
-          {dayjs(date).format("DD-MM-YYYY")}
-        </span>
-      ),
+      render: (date) => {
+        let out = "";
+        try {
+          const d = dayjs(date, ['YYYY-MM-DD', 'DD-MM-YYYY', 'DD - MM - YYYY', 'DD - MM - YYYY']);
+          if (d.isValid()) out = d.format('DD-MM-YYYY');
+          else {
+            const m = String(date).match(/(\d{1,2})\D*(\d{1,2})\D*(\d{4})/);
+            if (m) out = `${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}-${m[3]}`;
+            else out = String(date);
+          }
+        } catch (e) {
+          out = String(date || "");
+        }
+
+        return <span className="text-text/70 text-xs font-semibold">{out}</span>;
+      },
     },
     {
       title: "Created At",
@@ -312,6 +435,18 @@ export default function Expenses() {
             className="h-10 rounded-xl w-full sm:w-44"
           />
 
+          <div className="w-full md:w-64">
+            <Select
+              placeholder="Filter by title"
+              allowClear
+              value={selectedTitleFilter}
+              onChange={(val) => setSelectedTitleFilter(val)}
+              options={expenseTitles.map((t) => ({ label: t, value: t }))}
+              className="h-10 rounded-xl w-full"
+              showSearch
+            />
+          </div>
+
           {hasActiveFilters && (
             <Button
               type="text"
@@ -348,7 +483,7 @@ export default function Expenses() {
             <span>{editingExpense ? "Edit Expense Transaction" : "Add New Expense"}</span>
           </div>
         }
-        open={modalOpen}
+        open={modalOpen} 
         onOk={() => form.submit()}
         onCancel={() => {
           setModalOpen(false);
@@ -368,12 +503,38 @@ export default function Expenses() {
           <Form.Item
             name="title"
             label="Expense Title"
-            rules={[{ required: true, message: "Please input expense title!" }]}
+            rules={[{ required: true, message: "Please select or enter expense title!" }]}
           >
-            <Input placeholder="e.g. صيانة تكييفات" className="h-11 rounded-xl" />
+            <Select
+              showSearch
+              placeholder="e.g. صيانة تكييفات"
+              className="w-full h-11 rounded-xl"
+              options={[
+                ...expenseTitles.map((t) => ({ label: t, value: t })),
+                { label: "Other (write manually)", value: "__other__" },
+              ]}
+              onChange={(val) => {
+                if (val && val !== "__other__") saveExpenseTitle(val);
+              }}
+              onBlur={() => {
+                const v = form.getFieldValue('title');
+                if (v && v !== "__other__") saveExpenseTitle(v);
+              }}
+              allowClear
+            />
           </Form.Item>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Custom title input when user selects Other */}
+            {/* <Form.Item
+              name="custom_title"
+              label="Custom Title"
+              rules={[{ required: true, message: "Please enter custom title" }]}
+            >
+              <Input placeholder="Type custom expense title..." className="h-11 rounded-xl" />
+            </Form.Item> */}
+          
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Form.Item
               name="amount"
               label="Amount (EGP)"
@@ -388,11 +549,30 @@ export default function Expenses() {
             </Form.Item>
 
             <Form.Item
-              name="expense_date"
-              label="Expense Date"
-              rules={[{ required: true, message: "Please select date!" }]}
+              name="expense_month"
+              label="Month"
+              rules={[{ required: true, message: "Please select month!" }]}
             >
-              <DatePicker className="w-full h-11 rounded-xl" format="YYYY-MM-DD" />
+              <Select className="w-full h-11 rounded-xl" options={Array.from({ length: 12 }).map((_, i) => {
+                const m = String(i + 1).padStart(2, '0');
+                return { label: m, value: m };
+              })} />
+            </Form.Item>
+
+            <Form.Item
+              name="expense_year"
+              label="Year"
+              rules={[{ required: true, message: "Please select year!" }]}
+            >
+              <Select
+                className="w-full h-11 rounded-xl"
+                options={(() => {
+                  const current = dayjs().year();
+                  const list = [];
+                  for (let y = current - 2; y <= current + 2; y++) list.push({ label: String(y), value: String(y) });
+                  return list.reverse();
+                })()}
+              />
             </Form.Item>
           </div>
 

@@ -208,12 +208,14 @@ function TransferTable({
   );
 
   return (
-    <Card className="border-border!">
+    <Card className="rounded-3xl border-border shadow-sm overflow-hidden" bodyStyle={{ padding: 0 }}>
       <Table
+        className="transfer-table"
         columns={columns}
         dataSource={transfers}
         loading={loading}
         rowKey="id"
+        rowClassName={() => "transition-colors hover:bg-surface"}
         pagination={{
           pageSize: 10,
           showSizeChanger: false,
