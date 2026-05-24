@@ -1,4 +1,14 @@
+import axios from "axios";
 import apiInstance from "../../shared/services/api/apiInstance";
+
+export const getExpenseReasons = async () => {
+  try {
+    const response = await axios.get('https://camp-coding.site/nourstaff/user/home/get_expens_reasons.php');
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 
 export const getExpenses = async () => {
   try {

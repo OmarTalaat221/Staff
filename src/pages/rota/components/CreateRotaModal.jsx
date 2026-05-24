@@ -162,6 +162,7 @@ export default function CreateRotaModal({ open, onClose, onCreate, loading, staf
                                 name={[shiftField.name, 'times']}
                                 label={<span className="text-[10px]">Work Time</span>}
                                 rules={[{ required: true }]}
+                                initialValue={[dayjs('06:00', 'HH:mm'), dayjs('23:00', 'HH:mm')]}
                                 className="mb-0"
                               >
                                 <TimePicker.RangePicker format="HH:mm" size="small" style={{ width: 150 }} />
@@ -169,11 +170,11 @@ export default function CreateRotaModal({ open, onClose, onCreate, loading, staf
 
                               <Form.Item
                                 {...shiftField}
-                                name={[shiftField.name, 'break_times']}
-                                label={<span className="text-[10px]">Break</span>}
+                                name={[shiftField.name, 'break_minutes']}
+                                label={<span className="text-[10px]">Break (mins)</span>}
                                 className="mb-0"
                               >
-                                <TimePicker.RangePicker format="HH:mm" size="small" style={{ width: 150 }} />
+                                <InputNumber min={0} size="small" style={{ width: 80 }} placeholder="0" />
                               </Form.Item>
 
                               <Button 

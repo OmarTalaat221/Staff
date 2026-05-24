@@ -321,9 +321,9 @@ const ALL_TRANSFERS = buildTransfers();
 
 
 export const formatCurrency = (amount) =>
-  new Intl.NumberFormat("en-EG", {
+  new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "EGP",
+    currency: "GBP",
     minimumFractionDigits: 0,
   }).format(amount ?? 0);
 

@@ -8,7 +8,7 @@ const Row = memo(function Row({ label, value, className = "", prefix = "" }) {
       <span className="text-text/60 text-sm">{label}</span>
       <span className={`text-sm font-semibold ${className}`}>
         {prefix}
-        {value?.toLocaleString()} EGP
+        {value?.toLocaleString()} Pound
       </span>
     </div>
   );
@@ -52,7 +52,7 @@ const SettlementTab = memo(function SettlementTab({
           <div>
             <p className="text-text/50 text-xs">Base Salary</p>
             <p className="text-text font-bold text-lg">
-              {settlement.baseSalary?.toLocaleString()} EGP
+              {settlement.baseSalary?.toLocaleString()} Pound
             </p>
           </div>
         </div>
@@ -64,7 +64,7 @@ const SettlementTab = memo(function SettlementTab({
           <div>
             <p className="text-text/50 text-xs">Total Deductions</p>
             <p className="text-danger font-bold text-lg">
-              {settlement.totalDeductions?.toLocaleString()} EGP
+              {settlement.totalDeductions?.toLocaleString()} Pound
             </p>
           </div>
         </div>
@@ -76,7 +76,7 @@ const SettlementTab = memo(function SettlementTab({
           <div>
             <p className="text-text/50 text-xs">Net Payable</p>
             <p className="text-success font-bold text-lg">
-              {settlement.netAmount?.toLocaleString()} EGP
+              {settlement.netAmount?.toLocaleString()} Pound
             </p>
           </div>
         </div>
@@ -143,7 +143,7 @@ const SettlementTab = memo(function SettlementTab({
         <div className="mt-4 pt-4 border-t-2 border-border flex items-center justify-between">
           <span className="text-text font-bold text-base">Net Payable</span>
           <span className="text-success font-bold text-xl">
-            {settlement.netAmount?.toLocaleString()} EGP
+            {settlement.netAmount?.toLocaleString()} Pound
           </span>
         </div>
       </div>

@@ -48,10 +48,10 @@ export default function TransferDrawer({
       staffMembers.map((staff) => ({
         value: staff.id,
         label: `${staff.name} — ${staff.role} (${new Intl.NumberFormat(
-          "en-EG",
+          "en-GB",
           {
             style: "currency",
-            currency: "EGP",
+            currency: "GBP",
             minimumFractionDigits: 0,
           }
         ).format(staff.salary)})`,
@@ -143,7 +143,7 @@ export default function TransferDrawer({
 
         <Form.Item
           name="amount"
-          label="Amount (EGP)"
+          label="Amount (Pound)"
           rules={[
             { required: true, message: "Amount is required" },
             {

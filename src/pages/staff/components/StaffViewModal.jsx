@@ -91,7 +91,7 @@ const StaffViewModal = memo(function StaffViewModal({ open, staff, onClose }) {
           <InfoRow
             icon={Banknote}
             label="Salary"
-            value={`${staff.salary?.toLocaleString()} EGP`}
+            value={`${staff.salary?.toLocaleString()} Pound`}
           />
         </div>
 

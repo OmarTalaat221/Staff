@@ -97,7 +97,7 @@ export default function DashboardHome() {
         x,
         y,
         month: pt.month,
-        val: `${parseFloat(pt.expenses || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} EGP`,
+        val: `${parseFloat(pt.expenses || 0).toLocaleString("en-US", { maximumFractionDigits: 0 })} Pound`,
         staff: `${pt.active_staff} Active`,
       };
     });

@@ -14,7 +14,7 @@ const ProfileHeader = memo(function ProfileHeader({ staff }) {
     {
       icon: Banknote,
       label: "Base Salary",
-      value: `${staff.salary?.toLocaleString()} EGP / month`,
+      value: `${staff.salary?.toLocaleString()} Pound / month`,
     },
   ];
 

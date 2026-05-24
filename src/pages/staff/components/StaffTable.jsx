@@ -1,8 +1,9 @@
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo, useCallback, useState } from "react";
 import { Table, Avatar, Dropdown, Button } from "antd";
 import {
   MoreHorizontal,
   Eye,
+  EyeOff,
   Pencil,
   Trash2,
   UserCheck,
@@ -92,6 +93,27 @@ const StaffTable = memo(function StaffTable({
   onDelete,
   onToggleStatus,
 }) {
+  const [visibleSalaries, setVisibleSalaries] = useState({});
+  const [showAllSalaries, setShowAllSalaries] = useState(false);
+
+  const toggleAllSalaries = useCallback(() => {
+    const newState = !showAllSalaries;
+    setShowAllSalaries(newState);
+    if (data) {
+      const newVisibleSalaries = {};
+      data.forEach((item) => {
+        newVisibleSalaries[item.id] = newState;
+      });
+      setVisibleSalaries(newVisibleSalaries);
+    }
+  }, [showAllSalaries, data]);
+
+  const toggleSalaryVisibility = useCallback((id) => {
+    setVisibleSalaries((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -152,10 +174,35 @@ const StaffTable = memo(function StaffTable({
         render: (status) => <StaffStatusBadge status={status} />,
       },
       {
-        title: "Salary",
+        title: (
+          <div className="flex items-center gap-2">
+            Salary
+            <Button
+              type="text"
+              size="small"
+              onClick={toggleAllSalaries}
+              icon={showAllSalaries ? <EyeOff size={14} className="text-text/50" /> : <Eye size={14} className="text-text/50" />}
+            />
+          </div>
+        ),
         dataIndex: "salary",
         key: "salary",
-        render: (salary, record) => <span className={`px-2 py-1 rounded-full ${record?.salary_type === "Monthly" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"} text-sm`}>{`$${salary} ${record?.salary_type}`}</span>,
+        render: (salary, record) => {
+          const isVisible = visibleSalaries[record.id];
+          return (
+            <div className="flex items-center gap-2">
+              <span className={`px-2 py-1 rounded-full ${record?.salary_type === "Monthly" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"} text-sm`}>
+                {isVisible ? `$${salary} ${record?.salary_type}` : 'xxxxx'}
+              </span>
+              <Button
+                type="text"
+                size="small"
+                onClick={() => toggleSalaryVisibility(record.id)}
+                icon={isVisible ? <EyeOff size={14} className="text-text/50" /> : <Eye size={14} className="text-text/50" />}
+              />
+            </div>
+          );
+        },
       },
       {
         title: "",
@@ -172,7 +219,7 @@ const StaffTable = memo(function StaffTable({
         ),
       },
     ],
-    [onView, onEdit, onDelete, onToggleStatus]
+    [onView, onEdit, onDelete, onToggleStatus, visibleSalaries, toggleSalaryVisibility]
   );
 
   return (

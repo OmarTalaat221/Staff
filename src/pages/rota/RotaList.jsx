@@ -3,20 +3,12 @@ import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useRotaPage from "./useRotaPage";
 import RotaTable from "./components/RotaTable";
-import ApplyRotaModal from "./components/ApplyRotaModal";
 
 export default function RotaList() {
   const navigate = useNavigate();
   const {
     templates,
     loading,
-    
-    applyModalOpen,
-    applyingTemplate,
-    applyLoading,
-    openApplyModal,
-    closeApplyModal,
-    handleApplyTemplate,
   } = useRotaPage();
 
   return (
@@ -45,17 +37,8 @@ export default function RotaList() {
         <RotaTable 
           data={templates} 
           loading={loading}
-          onApply={openApplyModal}
         />
       </div>
-
-      <ApplyRotaModal
-        open={applyModalOpen}
-        onClose={closeApplyModal}
-        onApply={handleApplyTemplate}
-        template={applyingTemplate}
-        loading={applyLoading}
-      />
     </div>
   );
 }

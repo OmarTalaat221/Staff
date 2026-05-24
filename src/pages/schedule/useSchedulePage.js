@@ -231,15 +231,11 @@ export default function useSchedulePage() {
   const groupedShifts = useMemo(() => {
     const grouped = {};
     weekDays.forEach((day) => {
-      grouped[day.date] = {
-        morning: [],
-        afternoon: [],
-        evening: [],
-      };
+      grouped[day.date] = [];
     });
     filteredShifts.forEach((shift) => {
-      if (grouped[shift.date] && grouped[shift.date][shift.shiftType]) {
-        grouped[shift.date][shift.shiftType].push(shift);
+      if (grouped[shift.date]) {
+        grouped[shift.date].push(shift);
       }
     });
     return grouped;

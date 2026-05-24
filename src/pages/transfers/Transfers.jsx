@@ -23,9 +23,9 @@ import SettlementsTabContent from "./settlements/SettlementsTabContent";
 
 
 const formatCurrency = (amount) =>
-  new Intl.NumberFormat("en-EG", {
+  new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "EGP",
+    currency: "GBP",
     minimumFractionDigits: 0,
   }).format(amount);
 
@@ -183,49 +183,53 @@ export default function Transfers() {
           )}
 
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-7 gap-4 mt-6">
-            <StatCard
-              icon={TransferIcon}
-              label="Total"
-              value={stats.total}
-              color="#84B067"
-            />
-            <StatCard
-              icon={Clock}
-              label="Pending"
-              value={stats.pending}
-              color="#D97706"
-            />
-            <StatCard
-              icon={CheckCircle2}
-              label="Completed"
-              value={stats.completed}
-              color="#16A34A"
-            />
-            <StatCard
-              icon={AlertTriangle}
-              label="Failed"
-              value={stats.failed}
-              color="#DC2626"
-            />
-            <StatCard
-              icon={DollarSign}
-              label="Total Paid"
-              value={formatCurrency(stats.totalPaid)}
-              color="#0F766E"
-            />
-            <StatCard
-              icon={TrendingDown}
-              label="Deductions"
-              value={formatCurrency(stats.totalDeductions)}
-              color="#7C3AED"
-            />
-            <StatCard
-              icon={Banknote}
-              label="Advances"
-              value={formatCurrency(stats.totalAdvances)}
-              color="#D97706"
-            />
+          <div className="flex flex-col gap-4 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <StatCard
+                icon={DollarSign}
+                label="Total Paid"
+                value={formatCurrency(stats.totalPaid)}
+                color="#0F766E"
+              />
+              <StatCard
+                icon={TrendingDown}
+                label="Total Deductions"
+                value={formatCurrency(stats.totalDeductions)}
+                color="#7C3AED"
+              />
+              <StatCard
+                icon={Banknote}
+                label="Total Advances"
+                value={formatCurrency(stats.totalAdvances)}
+                color="#D97706"
+              />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                icon={TransferIcon}
+                label="Total Transfers"
+                value={stats.total}
+                color="#84B067"
+              />
+              <StatCard
+                icon={Clock}
+                label="Pending"
+                value={stats.pending}
+                color="#D97706"
+              />
+              <StatCard
+                icon={CheckCircle2}
+                label="Completed"
+                value={stats.completed}
+                color="#16A34A"
+              />
+              <StatCard
+                icon={AlertTriangle}
+                label="Failed"
+                value={stats.failed}
+                color="#DC2626"
+              />
+            </div>
           </div>
 
           {/* Filters */}

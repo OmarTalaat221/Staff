@@ -22,7 +22,7 @@ export default function RotaDetails() {
   const [editShift, setEditShift] = useState(null);
   const [preSelectedDay, setPreSelectedDay] = useState(null);
   const [preSelectedStaffId, setPreSelectedStaffId] = useState(null);
-  const [showCost, setShowCost] = useState(true);
+  const [showCost, setShowCost] = useState(false);
 
   // Custom Salary Edit States
   const [salaryModalOpen, setSalaryModalOpen] = useState(false);
@@ -216,15 +216,24 @@ export default function RotaDetails() {
         return;
       }
 
-      const shiftsArray = selectedDays.map((day) => ({
-        day_number: String(day),
-        shift_type: 'Morning',
-        start_time: values.times[0].format('HH:mm:ss'),
-        end_time: values.times[1].format('HH:mm:ss'),
-        break_start: values.break_times?.[0]?.format('HH:mm:ss') || null,
-        break_end: values.break_times?.[1]?.format('HH:mm:ss') || null,
-        notes: values.notes || ""
-      }));
+      const shiftsArray = selectedDays.map((day) => {
+        let break_start = null;
+        let break_end = null;
+        if (values.break_minutes) {
+          break_start = values.times[0].format('HH:mm:ss');
+          break_end = values.times[0].add(values.break_minutes, 'minute').format('HH:mm:ss');
+        }
+
+        return {
+          day_number: String(day),
+          shift_type: 'Morning',
+          start_time: values.times[0].format('HH:mm:ss'),
+          end_time: values.times[1].format('HH:mm:ss'),
+          break_start: break_start,
+          break_end: break_end,
+          notes: values.notes || ""
+        };
+      });
 
       const payload = {
         rota_id: Number(id),
@@ -476,7 +485,7 @@ export default function RotaDetails() {
                 <div className="flex items-center gap-1.5">
                   <div className="text-xs font-bold truncate leading-none">{record.name}</div>
                   <Tooltip title="Set monthly fixed shifts">
-                    <button 
+                    <button
                       onClick={() => {
                         setMonthlyStaff(record);
                         setMonthlyDrawerOpen(true);
@@ -487,7 +496,7 @@ export default function RotaDetails() {
                     </button>
                   </Tooltip>
                 </div>
-                <div className="flex items-center gap-1 mt-0.5">
+                {/* <div className="flex items-center gap-1 mt-0.5">
                   <span className="text-[9px] text-text/40 truncate uppercase">{record.role}</span>
                   {staffInDetails?.salary_info && (
                     <>
@@ -501,7 +510,7 @@ export default function RotaDetails() {
                       </span>
                     </>
                   )}
-                </div>
+                </div> */}
               </div>
             </div>
           );
@@ -691,7 +700,7 @@ export default function RotaDetails() {
           bordered
           className="rota-details-compact-table"
           summary={() => (
-              <Table.Summary fixed="bottom">
+            <Table.Summary fixed="bottom">
               <Table.Summary.Row className="bg-primary/5 font-bold">
                 <Table.Summary.Cell index={0} fixed="left">
                   <div className="text-[10px] text-primary flex items-center gap-1">
@@ -824,9 +833,9 @@ export default function RotaDetails() {
             }}>
               Cancel
             </Button>
-            <Button 
-              type="primary" 
-              loading={drawerLoading} 
+            <Button
+              type="primary"
+              loading={drawerLoading}
               onClick={() => monthlyForm.submit()}
               className="font-bold"
             >
@@ -839,6 +848,9 @@ export default function RotaDetails() {
           form={monthlyForm}
           layout="vertical"
           onFinish={handleSaveMonthlyShifts}
+          initialValues={{
+            times: [dayjs('06:00', 'HH:mm'), dayjs('23:00', 'HH:mm')]
+          }}
         >
           <Form.Item label="Apply To">
             <Radio.Group value={monthlyType} onChange={(e) => setMonthlyType(e.target.value)}>
@@ -856,6 +868,7 @@ export default function RotaDetails() {
               <div className="grid grid-cols-7 gap-2 max-h-48 overflow-y-auto pr-1">
                 {monthDays.map((day) => {
                   const active = monthlySelectedDates.includes(day);
+                  const dayName = dayjs().date(day).format('ddd').toLowerCase();
                   return (
                     <button
                       key={day}
@@ -865,13 +878,17 @@ export default function RotaDetails() {
                           prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day]
                         );
                       }}
-                      className={`text-xs font-semibold h-10 rounded-xl border transition-colors ${
-                        active
+                      className={`flex flex-col items-center justify-center h-12 rounded-xl border transition-colors ${active
                           ? 'bg-primary text-white border-primary'
                           : 'bg-surface text-text border-border hover:border-text/30'
-                      }`}
+                        }`}
                     >
-                      {day}
+                      <span className={`text-[9px] uppercase font-medium ${active ? 'text-white/80' : 'text-text/40'}`}>
+                        {dayName}
+                      </span>
+                      <span className="text-sm font-bold leading-tight">
+                        {day}
+                      </span>
                     </button>
                   );
                 })}
@@ -918,10 +935,11 @@ export default function RotaDetails() {
           </Form.Item>
 
           <Form.Item
-            name="break_times"
-            label="Break Hours (Optional)"
+            name="break_minutes"
+            label="Break Duration (Minutes)"
           >
             <TimePicker.RangePicker format="HH:mm" className="w-full h-11" />
+
           </Form.Item>
 
           <Form.Item
@@ -981,11 +999,10 @@ export default function RotaDetails() {
                           : [...prev, stringId]
                       );
                     }}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
-                      isSelected
+                    className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${isSelected
                         ? 'bg-primary/5 border-primary shadow-sm'
                         : 'bg-surface border-border hover:border-text/20'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="bg-primary/10 text-primary font-bold text-xs" size={36}>

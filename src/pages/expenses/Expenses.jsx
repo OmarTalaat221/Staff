@@ -3,16 +3,7 @@ import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Space, Popc
 import { Plus, Edit2, Trash2, Search, DollarSign, Calendar, FileText, TrendingUp, X } from "lucide-react";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
-import { getExpenses, addExpense, updateExpense, deleteExpense } from "../../features/Expenses/expenseService";
-
-// default expense titles to show before/alongside API and saved values
-const DEFAULT_EXPENSE_TITLES = [
-  "صيانة تكييفات",
-  "قطع غيار",
-  "أجور عامل",
-  "Office Supplies",
-  "Transportation",
-];
+import { getExpenses, addExpense, updateExpense, deleteExpense, getExpenseReasons } from "../../features/Expenses/expenseService";
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <div className="bg-surface rounded-2xl border border-border p-5 flex items-center gap-4 transition-all hover:shadow-md hover:border-text/10">
@@ -46,33 +37,28 @@ export default function Expenses() {
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      const response = await getExpenses();
-      if (response && response.status === "success") {
-        const data = response.data || [];
+      // Fetch expenses and reasons in parallel
+      const [expensesResponse, reasonsResponse] = await Promise.allSettled([
+        getExpenses(),
+        getExpenseReasons()
+      ]);
+
+      let data = [];
+      if (expensesResponse.status === "fulfilled" && expensesResponse.value && expensesResponse.value.status === "success") {
+        data = expensesResponse.value.data || [];
         setExpenses(data);
-
-        // extract unique titles from API data and merge with defaults + saved
-        try {
-          const apiTitles = Array.from(
-            new Set(data.map((it) => (it && it.title ? String(it.title).trim() : null)).filter(Boolean))
-          );
-
-          const rawSaved = localStorage.getItem('expense_titles');
-          const saved = rawSaved ? JSON.parse(rawSaved) : [];
-
-          const merged = Array.from(new Set([...DEFAULT_EXPENSE_TITLES, ...(Array.isArray(saved) ? saved : []), ...apiTitles]));
-          setExpenseTitles(merged);
-          try {
-            localStorage.setItem('expense_titles', JSON.stringify(merged));
-          } catch (e) {
-            console.error('Failed to persist merged expense titles', e);
-          }
-        } catch (e) {
-          console.error('Failed to merge expense titles from API', e);
-        }
       } else {
         toast.error("Failed to fetch expenses");
       }
+
+      let reasons = [];
+      if (reasonsResponse.status === "fulfilled" && Array.isArray(reasonsResponse.value)) {
+        reasons = reasonsResponse.value;
+      } else {
+        console.warn("Failed to fetch expense reasons", reasonsResponse.reason);
+      }
+
+      setExpenseTitles(reasons);
     } catch (error) {
       console.error(error);
       toast.error(error.message || "Failed to load expenses");
@@ -84,40 +70,6 @@ export default function Expenses() {
   useEffect(() => {
     fetchExpenses();
   }, []);
-
-  useEffect(() => {
-    // load saved expense titles from localStorage and include defaults
-    try {
-      const raw = localStorage.getItem('expense_titles');
-      const list = raw ? JSON.parse(raw) : [];
-      const merged = Array.from(new Set([...(Array.isArray(list) ? list : []), ...DEFAULT_EXPENSE_TITLES]));
-      setExpenseTitles(merged);
-      // ensure stored value contains merged list
-      try {
-        localStorage.setItem('expense_titles', JSON.stringify(merged));
-      } catch (e) {
-        /* ignore */
-      }
-    } catch (e) {
-      console.error('Failed to load expense titles', e);
-    }
-  }, []);
-
-  const saveExpenseTitle = (title) => {
-    if (!title) return;
-    const t = String(title).trim();
-    if (!t) return;
-    setExpenseTitles((prev) => {
-      if (prev.includes(t)) return prev;
-      const next = [t, ...prev].slice(0, 100);
-      try {
-        localStorage.setItem('expense_titles', JSON.stringify(next));
-      } catch (e) {
-        console.error('Failed to save expense titles', e);
-      }
-      return next;
-    });
-  };
 
   // Compute stats
   const stats = useMemo(() => {
@@ -170,8 +122,6 @@ export default function Expenses() {
 
   const handleOpenEdit = (record) => {
     setEditingExpense(record);
-    // if title exists in known titles, set it; otherwise use Other + custom_title
-    const known = expenseTitles.includes(record.title);
     // parse existing expense_date to month/year if possible
     let month = String(dayjs().month() + 1).padStart(2, '0');
     let year = String(dayjs().year());
@@ -195,25 +145,20 @@ export default function Expenses() {
     }
 
     form.setFieldsValue({
-      title: known ? record.title : "__other__",
-      // custom_title: known ? undefined : record.title,
+      title: record.title,
       amount: parseFloat(record.amount),
       expense_month: month,
       expense_year: year,
       notes: record.notes,
     });
-    if (record.title && known) saveExpenseTitle(record.title);
     setModalOpen(true);
   };
 
   const handleSubmit = async (values) => {
     setSubmitLoading(true);
     try {
-      // determine title from select or custom field and persist locally
       let titleValue = values.title;
-      if (titleValue === "__other__") titleValue = values.title;
       if (Array.isArray(titleValue)) titleValue = titleValue[0];
-      if (titleValue) saveExpenseTitle(titleValue);
 
       // compose ISO expense_date as 'YYYY-MM-01'
       const month = String(values.expense_month).padStart(2, '0');
@@ -293,12 +238,12 @@ export default function Expenses() {
       width: 140,
       render: (amount) => (
         <span className="font-black text-primary text-sm">
-          {parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 0 })} EGP
+          {parseFloat(amount).toLocaleString("en-US", { minimumFractionDigits: 0 })} Pound
         </span>
       ),
     },
     {
-      title: "Date",
+      title: "Payment Month",
       dataIndex: "expense_date",
       key: "expense_date",
       width: 140,
@@ -306,10 +251,17 @@ export default function Expenses() {
         let out = "";
         try {
           const d = dayjs(date, ['YYYY-MM-DD', 'DD-MM-YYYY', 'DD - MM - YYYY', 'DD - MM - YYYY']);
-          if (d.isValid()) out = d.format('DD-MM-YYYY');
+          if (d.isValid()) out = d.format('YYYY-MM');
           else {
             const m = String(date).match(/(\d{1,2})\D*(\d{1,2})\D*(\d{4})/);
-            if (m) out = `${String(m[1]).padStart(2,'0')}-${String(m[2]).padStart(2,'0')}-${m[3]}`;
+            if (m) {
+              const parsedDate = dayjs(`${m[3]}-${m[2]}-${m[1]}`);
+              if (parsedDate.isValid()) {
+                out = parsedDate.format('YYYY-MM');
+              } else {
+                 out = String(date);
+              }
+            }
             else out = String(date);
           }
         } catch (e) {
@@ -390,19 +342,19 @@ export default function Expenses() {
         <StatCard
           icon={DollarSign}
           label="Total Expenses (All Time)"
-          value={`${stats.totalAmount} EGP`}
+          value={`${stats.totalAmount} Pound`}
           color="#22c55e"
         />
         <StatCard
           icon={TrendingUp}
           label="This Month Expenses"
-          value={`${stats.thisMonthAmount} EGP`}
+          value={`${stats.thisMonthAmount} Pound`}
           color="#3b82f6"
         />
         <StatCard
           icon={Calendar}
           label="Average Expense Size"
-          value={`${stats.average} EGP`}
+          value={`${stats.average} Pound`}
           color="#8b5cf6"
         />
         <StatCard
@@ -503,41 +455,22 @@ export default function Expenses() {
           <Form.Item
             name="title"
             label="Expense Title"
-            rules={[{ required: true, message: "Please select or enter expense title!" }]}
+            rules={[{ required: true, message: "Please select expense title!" }]}
           >
             <Select
               showSearch
-              placeholder="e.g. صيانة تكييفات"
+              placeholder="Select expense title..."
               className="w-full h-11 rounded-xl"
-              options={[
-                ...expenseTitles.map((t) => ({ label: t, value: t })),
-                { label: "Other (write manually)", value: "__other__" },
-              ]}
-              onChange={(val) => {
-                if (val && val !== "__other__") saveExpenseTitle(val);
-              }}
-              onBlur={() => {
-                const v = form.getFieldValue('title');
-                if (v && v !== "__other__") saveExpenseTitle(v);
-              }}
+              options={expenseTitles.map((t) => ({ label: t, value: t }))}
               allowClear
             />
           </Form.Item>
-
-          {/* Custom title input when user selects Other */}
-            {/* <Form.Item
-              name="custom_title"
-              label="Custom Title"
-              rules={[{ required: true, message: "Please enter custom title" }]}
-            >
-              <Input placeholder="Type custom expense title..." className="h-11 rounded-xl" />
-            </Form.Item> */}
           
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Form.Item
               name="amount"
-              label="Amount (EGP)"
+              label="Amount (Pound)"
               rules={[{ required: true, message: "Please input amount!" }]}
             >
               <InputNumber

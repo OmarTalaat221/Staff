@@ -112,7 +112,7 @@ export const ROLES = [
 ];
 
 export const DEPARTMENTS = [
-  "Service",
+  "Floor",
   "Kitchen",
   "Finance",
   "Logistics",

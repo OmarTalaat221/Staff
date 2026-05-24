@@ -76,7 +76,7 @@ const TransfersTab = memo(function TransfersTab({ transfers }) {
                   className={`font-bold text-base ${negative ? "text-danger" : "text-success"}`}
                 >
                   {negative ? "−" : "+"}
-                  {transfer.amount.toLocaleString()} EGP
+                  {transfer.amount.toLocaleString()} Pound
                 </p>
                 <p className="text-text/50 text-xs capitalize">
                   {transfer.method.replace("-", " ")}

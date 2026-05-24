@@ -90,13 +90,13 @@ export default function AdvanceDrawer({
 
         <Form.Item
           name="amount"
-          label="Amount (EGP)"
+          label="Amount (Pound)"
           rules={[
             { required: true, message: "Amount is required" },
             {
               type: "number",
               min: 100,
-              message: "Minimum amount is 100 EGP",
+              message: "Minimum amount is 100 Pound",
             },
           ]}
         >

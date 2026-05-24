@@ -4,9 +4,7 @@ import { Plus } from "lucide-react";
 import ScheduleShiftCard from "./ScheduleShiftCard";
 
 const shiftLabels = [
-  { key: "morning", label: "Morning", time: "06:00 - 14:00" },
-  { key: "afternoon", label: "Afternoon", time: "14:00 - 22:00" },
-  { key: "evening", label: "Evening", time: "22:00 - 06:00" },
+  { key: "all", label: "Shifts", time: "All Day" },
 ];
 
 function ScheduleWeekView({
@@ -27,22 +25,12 @@ function ScheduleWeekView({
               <th className="w-[180px] p-3 text-left text-xs font-semibold text-text/50 border-b border-border">
                 Day
               </th>
-
-              {shiftLabels.map((shiftType) => (
-                <th
-                  key={shiftType.key}
-                  className="p-3 text-left border-b border-border min-w-[230px]"
-                >
-                  <div>
-                    <p className="text-xs font-semibold text-text">
-                      {shiftType.label}
-                    </p>
-                    <p className="text-[10px] text-text/40 mt-0.5">
-                      {shiftType.time}
-                    </p>
-                  </div>
-                </th>
-              ))}
+              <th className="p-3 text-left border-b border-border min-w-[230px]">
+                <div>
+                  <p className="text-xs font-semibold text-text">Shifts</p>
+                  <p className="text-[10px] text-text/40 mt-0.5">All Day</p>
+                </div>
+              </th>
             </tr>
           </thead>
 
@@ -83,38 +71,33 @@ function ScheduleWeekView({
                   </div>
                 </td>
 
-                {shiftLabels.map((shiftType) => {
-                  const dayShifts =
-                    groupedShifts[day.date]?.[shiftType.key] || [];
-
-                  return (
-                    <td
-                      key={`${day.date}-${shiftType.key}`}
-                      className={`p-2 border-b border-border border-l align-top ${
-                        day.isToday ? "bg-primary/3" : ""
-                      }`}
-                    >
-                      <div className="flex flex-col gap-1.5 min-h-[92px]">
-                        {dayShifts.map((shift) => (
+                <td
+                  className={`p-2 border-b border-border border-l align-top ${
+                    day.isToday ? "bg-primary/3" : ""
+                  }`}
+                >
+                  <div className="flex flex-col gap-1.5 min-h-[92px]">
+                    <div className="flex flex-wrap gap-1.5">
+                      {groupedShifts[day.date]?.map((shift) => (
+                        <div key={shift.id} className="w-[230px]">
                           <ScheduleShiftCard
-                            key={shift.id}
                             shift={shift}
                             onView={onViewShift}
                             onEdit={onEditShift}
                             onDelete={onDeleteShift}
                           />
-                        ))}
+                        </div>
+                      ))}
+                    </div>
 
-                        <button
-                          onClick={() => onAddShift(day.date, shiftType.key)}
-                          className="flex items-center justify-center gap-1 p-1.5 rounded-lg border border-dashed border-border/80 text-text/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all text-[11px]"
-                        >
-                          <Plus size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  );
-                })}
+                    <button
+                      onClick={() => onAddShift(day.date)}
+                      className="w-full max-w-[230px] flex items-center justify-center gap-1 p-1.5 rounded-lg border border-dashed border-border/80 text-text/30 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all text-[11px]"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -154,30 +137,19 @@ function ScheduleWeekView({
               </div>
             </div>
 
-            {shiftLabels.map((shiftType) => {
-              const dayShifts = groupedShifts[day.date]?.[shiftType.key] || [];
-              if (dayShifts.length === 0) return null;
-
-              return (
-                <div key={shiftType.key} className="mb-3 last:mb-0">
-                  <p className="text-[11px] font-semibold text-text/40 uppercase tracking-wide mb-1.5">
-                    {shiftType.label} · {shiftType.time}
-                  </p>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                    {dayShifts.map((shift) => (
-                      <ScheduleShiftCard
-                        key={shift.id}
-                        shift={shift}
-                        onView={onViewShift}
-                        onEdit={onEditShift}
-                        onDelete={onDeleteShift}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+            <div className="mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {groupedShifts[day.date]?.map((shift) => (
+                  <ScheduleShiftCard
+                    key={shift.id}
+                    shift={shift}
+                    onView={onViewShift}
+                    onEdit={onEditShift}
+                    onDelete={onDeleteShift}
+                  />
+                ))}
+              </div>
+            </div>
 
             <button
               onClick={() => onAddShift(day.date)}

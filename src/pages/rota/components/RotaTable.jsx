@@ -1,13 +1,12 @@
 import { memo, useMemo } from "react";
-import { Table, Button, Dropdown } from "antd";
-import { MoreHorizontal, Play, Eye, Calendar } from "lucide-react";
+import { Table, Button } from "antd";
+import { Eye, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 
 const RotaTable = memo(function RotaTable({ 
   data, 
-  loading, 
-  onApply 
+  loading
 }) {
   const navigate = useNavigate();
 
@@ -48,35 +47,19 @@ const RotaTable = memo(function RotaTable({
     {
       title: "",
       key: "actions",
-      width: 80,
-      render: (_, record) => {
-        const items = [
-          {
-            key: "view",
-            icon: <Eye size={14} />,
-            label: "View Details",
-            onClick: () => navigate(`/rota/${record.id}`),
-          },
-          {
-            key: "apply",
-            icon: <Play size={14} />,
-            label: "Apply Template",
-            onClick: () => onApply(record),
-          }
-        ];
-
-        return (
-          <Dropdown menu={{ items }} trigger={["click"]} placement="bottomRight">
-            <Button
-              type="text"
-              icon={<MoreHorizontal size={18} className="text-text/50" />}
-              className="flex items-center justify-center"
-            />
-          </Dropdown>
-        );
-      }
+      width: 120,
+      render: (_, record) => (
+        <Button
+          size="small"
+          onClick={() => navigate(`/rota/${record.id}`)}
+          icon={<Eye size={14} />}
+          className="flex items-center gap-1.5 justify-center"
+        >
+          View Details
+        </Button>
+      )
     }
-  ], [onApply, navigate]);
+  ], [navigate]);
 
   return (
     <Table
