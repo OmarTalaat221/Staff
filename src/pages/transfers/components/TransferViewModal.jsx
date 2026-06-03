@@ -1,7 +1,6 @@
 import { Modal } from "antd";
 import {
   Calendar,
-  DollarSign,
   User,
   Briefcase,
   FileText,

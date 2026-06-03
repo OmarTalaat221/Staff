@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Table, Avatar, Tooltip, Button, Space, Card, Tag, Popconfirm, Modal, InputNumber, Checkbox, Divider, Input, Drawer, Form, TimePicker, Select, Radio } from "antd";
-import { Clock, Coffee, Info, ChevronLeft, ChevronRight, ArrowLeft, Calendar, DollarSign, Plus, Edit2, Trash2, UserPlus, Search } from "lucide-react";
+import { Clock, Coffee, Info, ChevronLeft, ChevronRight, ArrowLeft, Calendar, PoundSterling, Plus, Edit2, Trash2, UserPlus, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import { getRotaDetails, addShift, updateShift, deleteShift, updateRotaEmployeeSalary, assignEmployeesToRota, addRotaShifts } from "../../features/Schedule/scheduleService";
@@ -704,7 +704,7 @@ export default function RotaDetails() {
               <Table.Summary.Row className="bg-primary/5 font-bold">
                 <Table.Summary.Cell index={0} fixed="left">
                   <div className="text-[10px] text-primary flex items-center gap-1">
-                    <DollarSign size={12} />
+                    <PoundSterling size={12} />
                     <span>Total</span>
                   </div>
                 </Table.Summary.Cell>
@@ -760,7 +760,7 @@ export default function RotaDetails() {
       <Modal
         title={
           <div className="flex items-center gap-2 text-primary font-bold">
-            <DollarSign size={18} />
+            <PoundSterling size={18} />
             <span>Edit Employee Rota Salary</span>
           </div>
         }

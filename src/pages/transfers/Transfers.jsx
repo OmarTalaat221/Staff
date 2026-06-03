@@ -5,7 +5,7 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  DollarSign,
+  PoundSterling,
   TrendingDown,
   Banknote,
   Plus,
@@ -186,7 +186,7 @@ export default function Transfers() {
           <div className="flex flex-col gap-4 mt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <StatCard
-                icon={DollarSign}
+                icon={PoundSterling}
                 label="Total Paid"
                 value={formatCurrency(stats.totalPaid)}
                 color="#0F766E"

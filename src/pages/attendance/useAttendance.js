@@ -7,8 +7,8 @@ dayjs.extend(isoWeek);
 
 const STORAGE_KEY = "nm_attendance_records";
 
-const DEPARTMENTS = ["Service", "Kitchen", "Finance", "Logistics", "Management"];
-const ROLES = ["Waiter", "Chef", "Cashier", "Host", "Delivery", "Manager", "Cleaner"];
+const DEPARTMENTS = ["Service", "Kitchen", "Finance", "Logistics", "Management", "Bar", "Staff Food"];
+const ROLES = ["Waiter", "Chef", "Cashier", "Host", "Delivery", "Manager", "Cleaner", "Barista", "Waitress"];
 const PAGE_SIZE = 10;
 
 const STAFF_LIST = [

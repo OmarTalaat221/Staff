@@ -1,4 +1,4 @@
-import { DollarSign, Clock, CheckCircle2, Wallet, Plus } from "lucide-react";
+import { PoundSterling, Clock, CheckCircle2, Wallet, Plus } from "lucide-react";
 import { Button } from "antd";
 import useCashAdvance from "./useCashAdvance";
 import AdvanceFilters from "./components/AdvanceFilters";
@@ -101,7 +101,7 @@ export default function CashAdvance() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard
-          icon={DollarSign}
+          icon={PoundSterling}
           label="Total Requests"
           value={stats.total}
           color="#84B067"

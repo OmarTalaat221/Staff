@@ -3,7 +3,7 @@ import {
   Wallet,
   TrendingDown,
   TrendingUp,
-  BadgeDollarSign,
+  BadgePoundSterling,
 } from "lucide-react";
 import { formatCurrency } from "../useSettlementsTab";
 
@@ -52,7 +52,7 @@ const SettlementsStats = React.memo(function SettlementsStats({ stats }) {
       color: "#16A34A",
     },
     {
-      icon: BadgeDollarSign,
+      icon: BadgePoundSterling,
       label: "Net Total",
       value: formatCurrency(stats.netTotal),
       color: "#CA852D",

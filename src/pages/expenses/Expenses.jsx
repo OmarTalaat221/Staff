@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Space, Popconfirm, Tooltip, Card, Select } from "antd";
-import { Plus, Edit2, Trash2, Search, DollarSign, Calendar, FileText, TrendingUp, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, PoundSterling, Calendar, FileText, TrendingUp, X } from "lucide-react";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import { getExpenses, addExpense, updateExpense, deleteExpense, getExpenseReasons } from "../../features/Expenses/expenseService";
@@ -340,7 +340,7 @@ export default function Expenses() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon={DollarSign}
+          icon={PoundSterling}
           label="Total Expenses (All Time)"
           value={`${stats.totalAmount} Pound`}
           color="#22c55e"
@@ -431,7 +431,7 @@ export default function Expenses() {
       <Modal
         title={
           <div className="flex items-center gap-2 text-primary font-bold">
-            <DollarSign size={18} />
+            <PoundSterling size={18} />
             <span>{editingExpense ? "Edit Expense Transaction" : "Add New Expense"}</span>
           </div>
         }
