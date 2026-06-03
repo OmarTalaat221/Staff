@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, DatePicker, Button, Card, Space, Divider, Checkbox, Avatar } from 'antd';
-import { ArrowLeft, Save, Info, Search, Users, Calendar, FileText } from 'lucide-react';
+import { ArrowLeft, Save, Info, Search, Users, Calendar, FileText, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
 import toast from 'react-hot-toast';
 import { createRota, assignEmployeesToRota } from '../../features/Schedule/scheduleService';
-import { getAllStaff } from '../../features/Staff/staffService';
+import { getAllStaff, addStaff } from '../../features/Staff/staffService';
 import Loader from '../../shared/components/loader';
+import StaffDrawer from '../staff/components/StaffDrawer';
 
 const ARABIC_MONTHS = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -21,6 +22,8 @@ export default function CreateRotaPage() {
   const [staffLoading, setStaffLoading] = useState(true);
   const [selectedStaffIds, setSelectedStaffIds] = useState([]);
   const [searchText, setSearchText] = useState('');
+  const [addStaffOpen, setAddStaffOpen] = useState(false);
+  const [addStaffLoading, setAddStaffLoading] = useState(false);
 
   useEffect(() => {
     const fetchStaff = async () => {
@@ -109,6 +112,51 @@ export default function CreateRotaPage() {
       toast.error("Something went wrong. Please check your connection.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddStaffSubmit = async (data) => {
+    setAddStaffLoading(true);
+    try {
+      const dataSend = {
+        full_name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address || "",
+        password: data.password,
+        role: data.role,
+        department: data.department,
+        salary_type: data.salary_type,
+        salary: data.salary,
+        join_date: data.join_date,
+      };
+
+      const res = await addStaff(dataSend);
+      if (res && res.status === "success") {
+        toast.success(`${data.name} has been added successfully`);
+        setAddStaffOpen(false);
+        
+        // Refetch staff list
+        setStaffLoading(true);
+        const staffRes = await getAllStaff();
+        if (staffRes && (staffRes.status === "success" || Array.isArray(staffRes.data))) {
+          const list = Array.isArray(staffRes.data) ? staffRes.data : [];
+          setStaffList(list);
+          
+          // Auto-select the newly added staff member
+          const newStaff = list.find(s => s.full_name === data.name || s.email === data.email);
+          if (newStaff) {
+            setSelectedStaffIds(prev => [...prev, String(newStaff.employee_id)]);
+          }
+        }
+      } else {
+        toast.error(res?.message || "Failed to add employee");
+      }
+    } catch (error) {
+      toast.error("Failed to add employee");
+    } finally {
+      setStaffLoading(false);
+      setAddStaffLoading(false);
     }
   };
 
@@ -274,11 +322,29 @@ export default function CreateRotaPage() {
                     </div>
                   )}
                 </div>
+                <Divider className="my-2" />
+                <Button
+                  type="dashed"
+                  icon={<Plus size={16} />}
+                  onClick={() => setAddStaffOpen(true)}
+                  className="w-full flex items-center justify-center gap-1.5 h-11 rounded-xl text-sm font-bold border-primary/30 text-primary hover:text-primary/80 hover:border-primary"
+                >
+                  Add New Employee
+                </Button>
               </div>
             </Card>
           </div>
         </div>
       </Form>
+
+      <StaffDrawer
+        open={addStaffOpen}
+        mode="add"
+        editingStaff={null}
+        loading={addStaffLoading}
+        onClose={() => setAddStaffOpen(false)}
+        onSubmit={handleAddStaffSubmit}
+      />
     </div>
   );
 }

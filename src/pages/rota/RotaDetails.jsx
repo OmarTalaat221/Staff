@@ -5,9 +5,10 @@ import { Clock, Coffee, Info, ChevronLeft, ChevronRight, ArrowLeft, Calendar, Po
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
 import { getRotaDetails, addShift, updateShift, deleteShift, updateRotaEmployeeSalary, assignEmployeesToRota, addRotaShifts } from "../../features/Schedule/scheduleService";
-import { getAllStaff } from "../../features/Staff/staffService";
+import { getAllStaff, addStaff } from "../../features/Staff/staffService";
 import Loader from "../../shared/components/loader";
 import RotaShiftDrawer from "./components/RotaShiftDrawer";
+import StaffDrawer from "../staff/components/StaffDrawer";
 
 export default function RotaDetails() {
   const { id } = useParams();
@@ -35,6 +36,8 @@ export default function RotaDetails() {
   const [assignSearchText, setAssignSearchText] = useState('');
   const [selectedNewStaffIds, setSelectedNewStaffIds] = useState([]);
   const [assignSubmitLoading, setAssignSubmitLoading] = useState(false);
+  const [addStaffOpen, setAddStaffOpen] = useState(false);
+  const [addStaffLoading, setAddStaffLoading] = useState(false);
 
   // Monthly Shift Drawer States
   const [monthlyDrawerOpen, setMonthlyDrawerOpen] = useState(false);
@@ -42,6 +45,7 @@ export default function RotaDetails() {
   const [monthlyType, setMonthlyType] = useState('full_month');
   const [monthlySelectedDates, setMonthlySelectedDates] = useState([]);
   const [monthlySelectedWeekdays, setMonthlySelectedWeekdays] = useState([]);
+  const [monthlySelectedWeeks, setMonthlySelectedWeeks] = useState([]);
   const [monthlyForm] = Form.useForm();
 
   const WEEKDAY_OPTIONS = [
@@ -186,6 +190,67 @@ export default function RotaDetails() {
     }
   };
 
+  const handleAddStaffSubmit = async (data) => {
+    setAddStaffLoading(true);
+    try {
+      const dataSend = {
+        full_name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address || "",
+        password: data.password,
+        role: data.role,
+        department: data.department,
+        salary_type: data.salary_type,
+        salary: data.salary,
+        join_date: data.join_date,
+      };
+
+      const res = await addStaff(dataSend);
+      if (res && res.status === "success") {
+        toast.success(`${data.name} has been added successfully`);
+        setAddStaffOpen(false);
+        
+        // Refetch staff list
+        setLoading(true);
+        const [detailsRes, staffRes] = await Promise.all([
+          getRotaDetails(id),
+          getAllStaff()
+        ]);
+
+        if (detailsRes.status === "success") {
+          setDetails(detailsRes);
+        }
+
+        if (staffRes && (staffRes.status === "success" || Array.isArray(staffRes.data))) {
+          const staffList = Array.isArray(staffRes.data) ? staffRes.data : [];
+          const mappedStaff = staffList.map(item => ({
+            id: String(item.employee_id),
+            name: item.full_name,
+            role: item.role,
+            department: item.department,
+            salary: parseFloat(item.salary || 0),
+            salary_type: item.salary_type
+          }));
+          setStaffMembers(mappedStaff);
+
+          // Find and select the newly added staff member in selection list
+          const newEmp = mappedStaff.find(s => s.name === data.name || s.email === data.email);
+          if (newEmp) {
+            setSelectedNewStaffIds(prev => [...prev, newEmp.id]);
+          }
+        }
+      } else {
+        toast.error(res?.message || "Failed to add employee");
+      }
+    } catch (error) {
+      toast.error("Failed to add employee");
+    } finally {
+      setLoading(false);
+      setAddStaffLoading(false);
+    }
+  };
+
   const handleSaveMonthlyShifts = async (values) => {
     if (!monthlyStaff) return;
 
@@ -199,6 +264,11 @@ export default function RotaDetails() {
       return;
     }
 
+    if (monthlyType === 'weekly' && monthlySelectedWeeks.length === 0) {
+      toast.error('Please choose at least one week');
+      return;
+    }
+
     setDrawerLoading(true);
     try {
       const selectedDays = monthDays.filter((day) => {
@@ -207,6 +277,10 @@ export default function RotaDetails() {
         if (monthlyType === 'weekdays') {
           const dateObj = dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
           return monthlySelectedWeekdays.includes(dateObj.day());
+        }
+        if (monthlyType === 'weekly') {
+          const weekNum = Math.ceil(day / 7);
+          return monthlySelectedWeeks.includes(weekNum);
         }
         return false;
       });
@@ -255,6 +329,7 @@ export default function RotaDetails() {
         setMonthlyType('full_month');
         setMonthlySelectedDates([]);
         setMonthlySelectedWeekdays([]);
+        setMonthlySelectedWeeks([]);
         monthlyForm.resetFields();
         fetchData();
       } else {
@@ -309,8 +384,16 @@ export default function RotaDetails() {
         .filter(day => monthlySelectedWeekdays.includes(dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`).day()))
         .map(day => dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`).format('MMM D'));
     }
+    if (monthlyType === 'weekly') {
+      return monthDays
+        .filter(day => {
+          const weekNum = Math.ceil(day / 7);
+          return monthlySelectedWeeks.includes(weekNum);
+        })
+        .map(day => dayjs(`${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`).format('MMM D'));
+    }
     return [];
-  }, [monthlyType, monthlySelectedDates, monthlySelectedWeekdays, monthDays, rotaMonth, rotaYear]);
+  }, [monthlyType, monthlySelectedDates, monthlySelectedWeekdays, monthlySelectedWeeks, monthDays, rotaMonth, rotaYear]);
 
   const allDayNumbers = useMemo(() => {
     if (!details?.data) return Array.from({ length: 31 }, (_, i) => i + 1);
@@ -739,6 +822,20 @@ export default function RotaDetails() {
                   </div>
                 </Table.Summary.Cell>
               </Table.Summary.Row>
+              <Table.Summary.Row className="bg-white">
+                <Table.Summary.Cell index={0} fixed="left">
+                  <Button
+                    type="dashed"
+                    icon={<Plus size={12} />}
+                    onClick={() => setAssignModalOpen(true)}
+                    className="w-full flex items-center justify-center gap-1 text-[11px] font-bold border-primary/30 text-primary hover:text-primary/80 hover:border-primary"
+                    style={{ height: 32 }}
+                  >
+                    Add Employee
+                  </Button>
+                </Table.Summary.Cell>
+                <Table.Summary.Cell index={1} colSpan={allDayNumbers.length + 1} />
+              </Table.Summary.Row>
             </Table.Summary>
           )}
         />
@@ -818,6 +915,7 @@ export default function RotaDetails() {
           setMonthlyType('full_month');
           setMonthlySelectedDates([]);
           setMonthlySelectedWeekdays([]);
+          setMonthlySelectedWeeks([]);
           monthlyForm.resetFields();
         }}
         open={monthlyDrawerOpen}
@@ -829,6 +927,7 @@ export default function RotaDetails() {
               setMonthlyType('full_month');
               setMonthlySelectedDates([]);
               setMonthlySelectedWeekdays([]);
+              setMonthlySelectedWeeks([]);
               monthlyForm.resetFields();
             }}>
               Cancel
@@ -858,6 +957,7 @@ export default function RotaDetails() {
                 <Radio value="full_month">Full month</Radio>
                 <Radio value="dates">Select dates</Radio>
                 <Radio value="weekdays">Select weekdays</Radio>
+                <Radio value="weekly">Select weeks</Radio>
               </Space>
             </Radio.Group>
           </Form.Item>
@@ -906,6 +1006,26 @@ export default function RotaDetails() {
               />
               <div className="text-xs text-text/60">
                 The selected weekdays will be applied to every matching day in the month.
+              </div>
+            </div>
+          )}
+
+          {monthlyType === 'weekly' && (
+            <div className="space-y-4 mb-4">
+              <div className="text-sm font-semibold">Select weeks</div>
+              <Checkbox.Group
+                options={[
+                  { label: 'Week 1 (Days 1-7)', value: 1 },
+                  { label: 'Week 2 (Days 8-14)', value: 2 },
+                  { label: 'Week 3 (Days 15-21)', value: 3 },
+                  { label: 'Week 4 (Days 22-28)', value: 4 },
+                  { label: 'Week 5 (Days 29+)', value: 5 },
+                ]}
+                value={monthlySelectedWeeks}
+                onChange={(values) => setMonthlySelectedWeeks(values)}
+              />
+              <div className="text-xs text-text/60">
+                The selected weeks will be applied to all days within those weeks.
               </div>
             </div>
           )}
@@ -1034,6 +1154,15 @@ export default function RotaDetails() {
               </div>
             )}
           </div>
+          <Divider className="my-2" />
+          <Button
+            type="dashed"
+            icon={<Plus size={14} />}
+            onClick={() => setAddStaffOpen(true)}
+            className="w-full flex items-center justify-center gap-1.5 h-10 rounded-xl text-xs font-bold border-primary/30 text-primary hover:text-primary/80 hover:border-primary"
+          >
+            Create New Employee
+          </Button>
         </div>
       </Modal>
 
@@ -1078,6 +1207,15 @@ export default function RotaDetails() {
           z-index: 20 !important;
         }
       `}} />
+
+      <StaffDrawer
+        open={addStaffOpen}
+        mode="add"
+        editingStaff={null}
+        loading={addStaffLoading}
+        onClose={() => setAddStaffOpen(false)}
+        onSubmit={handleAddStaffSubmit}
+      />
     </div>
   );
 }

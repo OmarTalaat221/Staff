@@ -22,6 +22,8 @@ const roleOptions = [
   { value: "Delivery", label: "Delivery" },
   { value: "Manager", label: "Manager" },
   { value: "Cleaner", label: "Cleaner" },
+  { value: "Barista", label: "Barista" },
+  { value: "Waitress", label: "Waitress" },
 ];
 
 export default function ScheduleFilters({

@@ -109,6 +109,8 @@ export const ROLES = [
   "Delivery",
   "Manager",
   "Cleaner",
+  "Barista",
+  "Waitress",
 ];
 
 export const DEPARTMENTS = [
@@ -117,6 +119,8 @@ export const DEPARTMENTS = [
   "Finance",
   "Logistics",
   "Management",
+  "Bar",
+  "Staff Food",
 ];
 
 export const STATUSES = ["Active", "On Leave", "Inactive"];

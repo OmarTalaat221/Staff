@@ -17,6 +17,8 @@ const DEPARTMENTS = [
   "Finance",
   "Logistics",
   "Management",
+  "Bar",
+  "Staff Food",
 ];
 const ROLES = [
   "Waiter",
@@ -26,6 +28,8 @@ const ROLES = [
   "Delivery",
   "Manager",
   "Cleaner",
+  "Barista",
+  "Waitress",
 ];
 
 
