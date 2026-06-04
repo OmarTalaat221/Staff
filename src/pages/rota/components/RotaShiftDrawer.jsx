@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Drawer, Form, Select, Input, Button, Row, Col } from "antd";
+import { Drawer, Form, Select, Input, Button, Row, Col, TimePicker } from "antd";
+import dayjs from "dayjs";
 
 const SHIFT_TYPES = [
   { key: "Morning", label: "Morning", time: "06:00 - 14:00", startTime: "06:00", endTime: "14:00" },
@@ -28,10 +29,10 @@ export default function RotaShiftDrawer({
           day_number: Number(editShift.day_number),
           shift_type: editShift.shift_type,
           employee_id: String(editShift.employee_id),
-          start_time: editShift.start_time,
-          end_time: editShift.end_time,
-          break_start: editShift.break_start || "12:00",
-          break_end: editShift.break_end || "13:00",
+          start_time: editShift.start_time ? dayjs(editShift.start_time, "HH:mm") : null,
+          end_time: editShift.end_time ? dayjs(editShift.end_time, "HH:mm") : null,
+          break_start: editShift.break_start ? dayjs(editShift.break_start, "HH:mm") : dayjs("12:00", "HH:mm"),
+          break_end: editShift.break_end ? dayjs(editShift.break_end, "HH:mm") : dayjs("13:00", "HH:mm"),
           notes: editShift.notes || "",
         });
       } else {
@@ -44,10 +45,10 @@ export default function RotaShiftDrawer({
         }
         form.setFieldsValue({
           shift_type: "Morning",
-          start_time: "09:00",
-          end_time: "17:00",
-          break_start: "12:00",
-          break_end: "13:00",
+          start_time: dayjs("09:00", "HH:mm"),
+          end_time: dayjs("17:00", "HH:mm"),
+          break_start: dayjs("12:00", "HH:mm"),
+          break_end: dayjs("13:00", "HH:mm"),
         });
       }
     }
@@ -56,8 +57,8 @@ export default function RotaShiftDrawer({
   const handleShiftTypeChange = (value) => {
     const config = SHIFT_TYPES.find((t) => t.key === value);
     if (config) {
-      form.setFieldValue("start_time", config.startTime);
-      form.setFieldValue("end_time", config.endTime);
+      form.setFieldValue("start_time", config.startTime ? dayjs(config.startTime, "HH:mm") : null);
+      form.setFieldValue("end_time", config.endTime ? dayjs(config.endTime, "HH:mm") : null);
     }
   };
 
@@ -137,12 +138,12 @@ export default function RotaShiftDrawer({
         <Row gutter={12}>
           <Col span={12}>
             <Form.Item name="start_time" label="Start Time" rules={[{ required: true }]}>
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours size="small" className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="end_time" label="End Time" rules={[{ required: true }]}>
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours size="small" className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
         </Row>
@@ -150,12 +151,12 @@ export default function RotaShiftDrawer({
         <Row gutter={12}>
           <Col span={12}>
             <Form.Item name="break_start" label="Break Start">
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours size="small" className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="break_end" label="Break End">
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours size="small" className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
         </Row>

@@ -176,7 +176,7 @@ export default function TransferDrawer({
           label="Month"
           rules={[{ required: true, message: "Month is required" }]}
         >
-          <DatePicker picker="month" className="w-full" format="YYYY-MM" />
+          <DatePicker picker="month" className="w-full" format="YYYY-MM" inputReadOnly />
         </Form.Item>
 
         <Form.Item

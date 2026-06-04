@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Drawer, Form, Select, Input, Button, Row, Col } from "antd";
+import { Drawer, Form, Select, Input, Button, Row, Col, TimePicker } from "antd";
+import dayjs from "dayjs";
 
 export default function ShiftDrawer({
   open,
@@ -23,10 +24,10 @@ export default function ShiftDrawer({
           date: editShift.date,
           shiftType: editShift.shiftType,
           staffId: Number(editShift.staffId),
-          startTime: editShift.startTime,
-          endTime: editShift.endTime,
-          breakStart: editShift.breakStart || "12:00",
-          breakEnd: editShift.breakEnd || "13:00",
+          startTime: editShift.startTime ? dayjs(editShift.startTime, "HH:mm") : null,
+          endTime: editShift.endTime ? dayjs(editShift.endTime, "HH:mm") : null,
+          breakStart: editShift.breakStart ? dayjs(editShift.breakStart, "HH:mm") : dayjs("12:00", "HH:mm"),
+          breakEnd: editShift.breakEnd ? dayjs(editShift.breakEnd, "HH:mm") : dayjs("13:00", "HH:mm"),
           notes: editShift.notes || "",
         });
       } else {
@@ -38,12 +39,12 @@ export default function ShiftDrawer({
           form.setFieldValue("shiftType", preSelectedShiftType);
           const config = shiftTypes.find((t) => t.key === preSelectedShiftType);
           if (config) {
-            form.setFieldValue("startTime", config.startTime);
-            form.setFieldValue("endTime", config.endTime);
+            form.setFieldValue("startTime", config.startTime ? dayjs(config.startTime, "HH:mm") : null);
+            form.setFieldValue("endTime", config.endTime ? dayjs(config.endTime, "HH:mm") : null);
           }
         }
-        form.setFieldValue("breakStart", "12:00");
-        form.setFieldValue("breakEnd", "13:00");
+        form.setFieldValue("breakStart", dayjs("12:00", "HH:mm"));
+        form.setFieldValue("breakEnd", dayjs("13:00", "HH:mm"));
       }
     }
   }, [
@@ -58,8 +59,8 @@ export default function ShiftDrawer({
   const handleShiftTypeChange = (value) => {
     const config = shiftTypes.find((t) => t.key === value);
     if (config) {
-      form.setFieldValue("startTime", config.startTime);
-      form.setFieldValue("endTime", config.endTime);
+      form.setFieldValue("startTime", config.startTime ? dayjs(config.startTime, "HH:mm") : null);
+      form.setFieldValue("endTime", config.endTime ? dayjs(config.endTime, "HH:mm") : null);
     }
   };
 
@@ -164,7 +165,7 @@ export default function ShiftDrawer({
               label="Start Time"
               rules={[{ required: true, message: "Required" }]}
             >
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -173,7 +174,7 @@ export default function ShiftDrawer({
               label="End Time"
               rules={[{ required: true, message: "Required" }]}
             >
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
         </Row>
@@ -181,12 +182,12 @@ export default function ShiftDrawer({
         <Row gutter={12}>
           <Col span={12}>
             <Form.Item name="breakStart" label="Break Start">
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item name="breakEnd" label="Break End">
-              <Input type="time" />
+              <TimePicker format="h:mm a" use12Hours className="w-full" inputReadOnly />
             </Form.Item>
           </Col>
         </Row>

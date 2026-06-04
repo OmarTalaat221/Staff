@@ -104,7 +104,7 @@ export default function LeaveDrawer({
           label="Date Range"
           rules={[{ required: true, message: "Date range is required" }]}
         >
-          <RangePicker className="w-full" format="YYYY-MM-DD" />
+          <RangePicker className="w-full" format="YYYY-MM-DD" inputReadOnly />
         </Form.Item>
 
         <Form.Item name="reason" label="Reason">

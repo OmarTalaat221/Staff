@@ -218,6 +218,7 @@ export default function CreateRotaPage() {
                   className="w-full h-12 rounded-lg"
                   size="large"
                   onChange={handleDateChange}
+                  inputReadOnly
                 />
               </Form.Item>
 

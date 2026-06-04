@@ -63,6 +63,7 @@ const AttendanceFilters = React.memo(function AttendanceFilters({
             allowClear={false}
             format="DD MMM YYYY"
             className="w-44"
+            inputReadOnly
           />
         )}
         {period === "week" && (
@@ -73,6 +74,7 @@ const AttendanceFilters = React.memo(function AttendanceFilters({
             allowClear={false}
             format="[Week of] DD MMM"
             className="w-48"
+            inputReadOnly
           />
         )}
         {period === "month" && (
@@ -83,6 +85,7 @@ const AttendanceFilters = React.memo(function AttendanceFilters({
             allowClear={false}
             format="MMMM YYYY"
             className="w-40"
+            inputReadOnly
           />
         )}
       </div>

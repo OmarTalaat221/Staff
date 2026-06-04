@@ -147,7 +147,7 @@ const StaffDrawer = memo(function StaffDrawer({
             }
             rules={[{ required: true, message: "Join date is required" }]}
           >
-            <DatePicker className="w-full" format="YYYY-MM-DD" />
+            <DatePicker className="w-full" format="YYYY-MM-DD" inputReadOnly />
           </Form.Item>
 
           {/* </div> */}

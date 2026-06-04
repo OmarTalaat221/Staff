@@ -29,6 +29,7 @@ const SettlementsFilters = React.memo(function SettlementsFilters({
           allowClear={false}
           format="MMMM YYYY"
           className="w-40"
+          inputReadOnly
         />
 
         {/* Divider */}

@@ -293,9 +293,9 @@ export default function RotaDetails() {
       const shiftsArray = selectedDays.map((day) => {
         let break_start = null;
         let break_end = null;
-        if (values.break_minutes) {
-          break_start = values.times[0].format('HH:mm:ss');
-          break_end = values.times[0].add(values.break_minutes, 'minute').format('HH:mm:ss');
+        if (values.break_minutes && values.break_minutes[0] && values.break_minutes[1]) {
+          break_start = values.break_minutes[0].format('HH:mm:ss');
+          break_end = values.break_minutes[1].format('HH:mm:ss');
         }
 
         return {
@@ -482,6 +482,11 @@ export default function RotaDetails() {
   const handleSubmitShift = async (values) => {
     setDrawerLoading(true);
     try {
+      const formatTime = (timeVal) => {
+        if (!timeVal) return null;
+        if (dayjs.isDayjs(timeVal)) return timeVal.format("HH:mm");
+        return timeVal;
+      };
       if (editShift) {
         const dayNum = values.day_number || editShift.day_number;
         const shiftDate = `${rotaYear}-${String(rotaMonth).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
@@ -490,10 +495,10 @@ export default function RotaDetails() {
           employee_id: Number(values.employee_id || editShift.employee_id),
           shift_date: shiftDate,
           shift_type: 'Morning',
-          start_time: values.start_time || editShift.start_time,
-          end_time: values.end_time || editShift.end_time,
-          break_start: values.break_start || editShift.break_start || "12:00",
-          break_end: values.break_end || editShift.break_end || "13:00",
+          start_time: formatTime(values.start_time) || editShift.start_time,
+          end_time: formatTime(values.end_time) || editShift.end_time,
+          break_start: formatTime(values.break_start) || editShift.break_start || "12:00",
+          break_end: formatTime(values.break_end) || editShift.break_end || "13:00",
           notes: values.notes !== undefined ? values.notes : (editShift.notes || ""),
           rota_id: Number(id)
         };
@@ -509,10 +514,10 @@ export default function RotaDetails() {
           employee_id: Number(values.employee_id),
           shift_date: shiftDate,
           shift_type: 'Morning',
-          start_time: values.start_time,
-          end_time: values.end_time,
-          break_start: values.break_start || "12:00",
-          break_end: values.break_end || "13:00",
+          start_time: formatTime(values.start_time),
+          end_time: formatTime(values.end_time),
+          break_start: formatTime(values.break_start) || "12:00",
+          break_end: formatTime(values.break_end) || "13:00",
           notes: values.notes || "",
           rota_id: Number(id)
         };
@@ -1051,15 +1056,14 @@ export default function RotaDetails() {
             label="Work Hours"
             rules={[{ required: true, message: 'Work hours range is required' }]}
           >
-            <TimePicker.RangePicker format="HH:mm" className="w-full h-11" />
+            <TimePicker.RangePicker format="h:mm a" use12Hours className="w-full h-11" inputReadOnly />
           </Form.Item>
 
           <Form.Item
             name="break_minutes"
-            label="Break Duration (Minutes)"
+            label="Break Time Range"
           >
-            <TimePicker.RangePicker format="HH:mm" className="w-full h-11" />
-
+            <TimePicker.RangePicker format="h:mm a" use12Hours className="w-full h-11" inputReadOnly />
           </Form.Item>
 
           <Form.Item

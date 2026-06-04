@@ -1,8 +1,10 @@
-import React from "react";
-import { Table, Button, Modal, Form, Select, DatePicker, TimePicker, Input, Space, Popconfirm, Tooltip } from "antd";
+import React, { useState } from "react";
+import { Table, Button, Modal, Form, Select, DatePicker, TimePicker, Input, Space, Popconfirm, Tooltip, Segmented } from "antd";
 import { Plus, Edit2, Trash2, Search, Calendar, User, Clock, CheckCircle2, XCircle, ArrowUpRight, ShieldAlert, Timer, Play, Power, X, UserCheck } from "lucide-react";
 import dayjs from "dayjs";
 import useAttendance from "./useAttendance";
+import useAttendanceStats from "./useAttendanceStats";
+import AttendanceStatsTable from "./components/AttendanceStatsTable";
 
 const { Option } = Select;
 
@@ -55,6 +57,9 @@ const AttendanceStatusBadge = ({ status }) => {
 };
 
 export default function Attendance() {
+  const [activeTab, setActiveTab] = useState("health");
+  const statsState = useAttendanceStats();
+
   const {
     records,
     totalCount,
@@ -103,6 +108,7 @@ export default function Attendance() {
     editModalOpen,
     setEditModalOpen,
     editingRecord,
+    setEditingRecord,
     handleOpenEdit,
     handleConfirmEdit,
     handleDeleteRecord,
@@ -267,366 +273,295 @@ export default function Attendance() {
           </p>
         </div>
 
-        <Button
-          type="primary"
-          icon={<Plus size={18} />}
-          onClick={() => {
-            handleOpenAdd();
-            addForm.resetFields();
-            addForm.setFieldsValue({
-              date: dayjs(),
-              shiftName: "Morning",
-              status: "present",
-              lateMinutes: 0,
-            });
-          }}
-          className="flex items-center gap-2 h-11 font-bold rounded-xl"
-        >
-          Add Log Manually
-        </Button>
-      </div>
-
-      {/* Interactive Live Clock Console Widget */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Widget: Live Animated Clock */}
-        <div className="lg:col-span-1 bg-text text-white rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
-          {/* Background Decorative Rings */}
-          <div className="absolute right-[-40px] top-[-40px] w-48 h-48 rounded-full border border-white/5 pointer-events-none"></div>
-          <div className="absolute right-[-20px] top-[-20px] w-36 h-36 rounded-full border border-white/10 pointer-events-none"></div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="flex h-2.5 w-2.5 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
-              </span>
-              <span className="text-[10px] text-white/50 font-black uppercase tracking-widest leading-none">
-                Live Time Clock
-              </span>
-            </div>
-
-            {/* Digital Clock */}
-            <div className="mt-4">
-              <h2 className="text-4xl font-black tracking-tight leading-none text-white font-mono">
-                {liveTime.format("HH:mm:ss")}
-              </h2>
-              <p className="text-xs text-white/60 font-semibold mt-2">
-                {liveTime.format("dddd, DD MMMM YYYY")}
-              </p>
-            </div>
-          </div>
-
-          {/* Active status pulse info for selected staff */}
-          <div className="border-t border-white/10 pt-4 mt-6">
-            {todayRecordForSelected ? (
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-white/50">Status for {selectedStaff.name}:</span>
-                  <span className="text-primary font-bold flex items-center gap-1 uppercase tracking-wider text-[10px] bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">
-                    Clocked In
-                  </span>
-                </div>
-                <div className="flex items-center justify-between mt-0.5">
-                  <div className="flex items-center gap-1.5 text-xs text-white/80">
-                    <Clock size={12} className="text-white/40" />
-                    <span>In at {todayRecordForSelected.checkIn}</span>
-                  </div>
-                  {workedLiveTime && (
-                    <div className="text-xs font-bold text-white flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
-                      <Timer size={12} className="text-primary animate-spin" style={{ animationDuration: "6s" }} />
-                      <span>{workedLiveTime}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-white/50">Status for {selectedStaff.name}:</span>
-                <span className="text-white/40 font-bold uppercase tracking-wider text-[10px] bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
-                  Not Clocked In
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Widget: Live Clocking Controller */}
-        <div className="lg:col-span-2 bg-surface border border-border rounded-3xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Power size={18} className="text-primary" />
-              <h3 className="text-text font-bold text-base leading-none">Clock In / Clock Out Station</h3>
-            </div>
-            <p className="text-text/50 text-xs mt-1.5">
-              Select a staff member and their shift, then perform real-time clock-in or clock-out.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
-            <div>
-              <label className="text-[11px] font-bold text-text/50 uppercase tracking-wide block mb-1.5">
-                Staff Member
-              </label>
-              <Select
-                showSearch
-                style={{ width: "100%" }}
-                placeholder="Select a staff member"
-                optionFilterProp="children"
-                value={selectedStaffId}
-                onChange={setSelectedStaffId}
-                className="h-11 rounded-xl"
-              >
-                {staffList.map((s) => (
-                  <Option key={s.id} value={s.id}>
-                    {s.name} ({s.role})
-                  </Option>
-                ))}
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-text/50 uppercase tracking-wide block mb-1.5">
-                Target Shift
-              </label>
-              <Select
-                style={{ width: "100%" }}
-                placeholder="Select shift"
-                value={selectedShift}
-                onChange={setSelectedShift}
-                disabled={!!todayRecordForSelected} // Lock shift once clocked in
-                className="h-11 rounded-xl"
-              >
-                {shifts.map((s) => (
-                  <Option key={s.name} value={s.name}>
-                    {s.name} ({s.start} - {s.end})
-                  </Option>
-                ))}
-              </Select>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 mt-6 sm:mt-8">
-            <Button
-              type="primary"
-              disabled={!!todayRecordForSelected && !!todayRecordForSelected.checkIn}
-              onClick={() => handleClockIn(selectedStaffId, selectedShift)}
-              className="flex-1 h-12 rounded-xl font-bold flex items-center justify-center gap-2 text-white bg-success hover:bg-success/80 border-none cursor-pointer"
-            >
-              <Play size={16} />
-              Clock In Staff
-            </Button>
-
-            <Button
-              type="primary"
-              danger
-              disabled={!todayRecordForSelected || !!todayRecordForSelected.checkOut}
-              onClick={() => handleClockOut(selectedStaffId)}
-              className="flex-1 h-12 rounded-xl font-bold flex items-center justify-center gap-2 cursor-pointer border-none"
-            >
-              <Power size={16} />
-              Clock Out Staff
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Cards Section */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          icon={UserCheck}
-          label="Present (Today)"
-          value={stats.present}
-          color="#16a34a"
-        />
-        <StatCard
-          icon={Clock}
-          label="Late Arrivals (Today)"
-          value={stats.late}
-          color="#d97706"
-        />
-        <StatCard
-          icon={XCircle}
-          label="Absent Today"
-          value={stats.absent}
-          color="#dc2626"
-        />
-        <StatCard
-          icon={Timer}
-          label="Average Shift worked"
-          value={stats.averageHours}
-          color="#84b067"
-        />
-      </div>
-
-      {/* Filters Section */}
-      <div className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-4">
-        {/* Row 1: Period + Date Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex rounded-xl border border-border overflow-hidden shrink-0">
-            {[
-              { key: "day", label: "Day" },
-              { key: "week", label: "Week" },
-              { key: "month", label: "Month" },
-            ].map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => {
-                  setPeriod(opt.key);
-                  setPage(1);
-                }}
-                className={`px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
-                  period === opt.key
-                    ? "bg-primary text-white"
-                    : "bg-surface text-text/60 hover:bg-bg"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          <DatePicker
-            picker={period === "day" ? "date" : period === "week" ? "week" : "month"}
-            value={selectedDate}
-            onChange={(d) => {
-              setSelectedDate(d || dayjs());
-              setPage(1);
-            }}
-            allowClear={false}
-            format={period === "day" ? "DD MMMM YYYY" : period === "week" ? "[Week of] DD MMM" : "MMMM YYYY"}
-            className="h-10 rounded-xl w-full sm:w-48 font-semibold text-text"
+        <div className="flex items-center gap-3">
+          <Segmented
+            options={[
+              { label: "Daily Console", value: "console" },
+              { label: "Attendance Health", value: "health" },
+            ]}
+            value={activeTab}
+            onChange={setActiveTab}
+            className="h-11 flex items-center p-1 rounded-xl bg-surface border border-border"
           />
-        </div>
-
-        {/* Row 2: Search + Select Dropdowns */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="w-full sm:w-64 relative">
-            <Input
-              prefix={<Search size={15} className="text-text/30 mr-1" />}
-              placeholder="Search staff by name..."
-              value={searchText}
-              onChange={(e) => {
-                setSearchText(e.target.value);
-                setPage(1);
-              }}
-              allowClear
-              className="h-10 rounded-xl"
-            />
-          </div>
-
-          <Select
-            placeholder="Department"
-            value={department || undefined}
-            onChange={(val) => {
-              setDepartment(val || "");
-              setPage(1);
-            }}
-            allowClear
-            className="w-full sm:w-40 h-10 rounded-xl"
-          >
-            {departments.map((d) => (
-              <Option key={d} value={d}>{d}</Option>
-            ))}
-          </Select>
-
-          <Select
-            placeholder="Role"
-            value={role || undefined}
-            onChange={(val) => {
-              setRole(val || "");
-              setPage(1);
-            }}
-            allowClear
-            className="w-full sm:w-36 h-10 rounded-xl"
-          >
-            {roles.map((r) => (
-              <Option key={r} value={r}>{r}</Option>
-            ))}
-          </Select>
-
-          <Select
-            placeholder="Status"
-            value={statusFilter || undefined}
-            onChange={(val) => {
-              setStatusFilter(val || "");
-              setPage(1);
-            }}
-            allowClear
-            className="w-full sm:w-36 h-10 rounded-xl"
-          >
-            <Option value="present">Present</Option>
-            <Option value="late">Late</Option>
-            <Option value="absent">Absent</Option>
-            <Option value="on-leave">On Leave</Option>
-          </Select>
-
-          {hasActiveFilters && (
+          {activeTab === "console" && (
             <Button
-              type="text"
-              onClick={handleClearFilters}
-              icon={<X size={14} />}
-              className="flex items-center gap-1.5 text-xs font-semibold text-text/50 hover:text-text cursor-pointer"
+              type="primary"
+              icon={<Plus size={18} />}
+              onClick={() => {
+                handleOpenAdd();
+                addForm.resetFields();
+                addForm.setFieldsValue({
+                  date: dayjs(),
+                  shiftName: "Morning",
+                  status: "present",
+                  lateMinutes: 0,
+                });
+              }}
+              className="flex items-center gap-2 h-11 font-bold rounded-xl"
             >
-              Clear Filters
+              Add Log Manually
             </Button>
           )}
         </div>
       </div>
+      {/* Daily Console Tab Content */}
+      {activeTab === "console" && (
+        <>
+        
 
-      {/* Logs Table Grid */}
-      <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-        <Table
-          columns={columns}
-          dataSource={records}
-          rowKey="id"
-          pagination={false}
-          scroll={{ x: 1000 }}
-          size="middle"
-          locale={{
-            emptyText: (
-              <div className="py-12 text-center">
-                <p className="text-text/50 text-sm font-semibold">No attendance logs found</p>
-                <p className="text-text/30 text-xs mt-1">Try adjusting your filters or date picker selection</p>
+          {/* Stats Cards Section */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              icon={UserCheck}
+              label="Present (Today)"
+              value={stats.present}
+              color="#16a34a"
+            />
+            <StatCard
+              icon={Clock}
+              label="Late Arrivals (Today)"
+              value={stats.late}
+              color="#d97706"
+            />
+            <StatCard
+              icon={XCircle}
+              label="Absent Today"
+              value={stats.absent}
+              color="#dc2626"
+            />
+            <StatCard
+              icon={Timer}
+              label="Average Shift worked"
+              value={stats.averageHours}
+              color="#84b067"
+            />
+          </div>
+
+          {/* Filters Section */}
+          <div className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-4">
+            {/* Row 1: Period + Date Filters */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex rounded-xl border border-border overflow-hidden shrink-0">
+                {[
+                  { key: "day", label: "Day" },
+                  { key: "week", label: "Week" },
+                  { key: "month", label: "Month" },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    onClick={() => {
+                      setPeriod(opt.key);
+                      setPage(1);
+                    }}
+                    className={`px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+                      period === opt.key
+                        ? "bg-primary text-white"
+                        : "bg-surface text-text/60 hover:bg-bg"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            ),
-          }}
-          rowClassName="hover:bg-bg/40 transition-colors"
-        />
 
-        {/* Custom Table Pagination Footer */}
-        {totalCount > pageSize && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-bg/10">
-            <p className="text-xs text-text/50 font-semibold">
-              Showing{" "}
-              <span className="font-bold text-text">
-                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)}
-              </span>{" "}
-              of <span className="font-bold text-text">{totalCount}</span> logs
-            </p>
-            <div className="flex gap-1.5">
-              <Button
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-                size="small"
-                className="rounded-lg text-xs font-bold cursor-pointer"
+              <DatePicker
+                picker={period === "day" ? "date" : period === "week" ? "week" : "month"}
+                value={selectedDate}
+                onChange={(d) => {
+                  setSelectedDate(d || dayjs());
+                  setPage(1);
+                }}
+                allowClear={false}
+                format={period === "day" ? "DD MMMM YYYY" : period === "week" ? "[Week of] DD MMM" : "MMMM YYYY"}
+                className="h-10 rounded-xl w-full sm:w-48 font-semibold text-text"
+                inputReadOnly
+              />
+            </div>
+
+            {/* Row 2: Search + Select Dropdowns */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="w-full sm:w-64 relative">
+                <Input
+                  prefix={<Search size={15} className="text-text/30 mr-1" />}
+                  placeholder="Search staff by name..."
+                  value={searchText}
+                  onChange={(e) => {
+                    setSearchText(e.target.value);
+                    setPage(1);
+                  }}
+                  allowClear
+                  className="h-10 rounded-xl"
+                />
+              </div>
+
+              <Select
+                placeholder="Department"
+                value={department || undefined}
+                onChange={(val) => {
+                  setDepartment(val || "");
+                  setPage(1);
+                }}
+                allowClear
+                className="w-full sm:w-40 h-10 rounded-xl"
               >
-                Previous
-              </Button>
-              <Button
-                disabled={page * pageSize >= totalCount}
-                onClick={() => setPage(page + 1)}
-                size="small"
-                className="rounded-lg text-xs font-bold cursor-pointer"
+                {departments.map((d) => (
+                  <Option key={d} value={d}>{d}</Option>
+                ))}
+              </Select>
+
+              <Select
+                placeholder="Role"
+                value={role || undefined}
+                onChange={(val) => {
+                  setRole(val || "");
+                  setPage(1);
+                }}
+                allowClear
+                className="w-full sm:w-36 h-10 rounded-xl"
               >
-                Next
-              </Button>
+                {roles.map((r) => (
+                  <Option key={r} value={r}>{r}</Option>
+                ))}
+              </Select>
+
+              <Select
+                placeholder="Status"
+                value={statusFilter || undefined}
+                onChange={(val) => {
+                  setStatusFilter(val || "");
+                  setPage(1);
+                }}
+                allowClear
+                className="w-full sm:w-36 h-10 rounded-xl"
+              >
+                <Option value="present">Present</Option>
+                <Option value="late">Late</Option>
+                <Option value="absent">Absent</Option>
+                <Option value="on-leave">On Leave</Option>
+              </Select>
+
+              {hasActiveFilters && (
+                <Button
+                  type="text"
+                  onClick={handleClearFilters}
+                  icon={<X size={14} />}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-text/50 hover:text-text cursor-pointer"
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Manual Add Attendance Log Modal */}
+          {/* Logs Table Grid */}
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+            <Table
+              columns={columns}
+              dataSource={records}
+              rowKey="id"
+              pagination={false}
+              scroll={{ x: 1000 }}
+              size="middle"
+              locale={{
+                emptyText: (
+                  <div className="py-12 text-center">
+                    <p className="text-text/50 text-sm font-semibold">No attendance logs found</p>
+                    <p className="text-text/30 text-xs mt-1">Try adjusting your filters or date picker selection</p>
+                  </div>
+                ),
+              }}
+              rowClassName="hover:bg-bg/40 transition-colors"
+            />
+
+            {/* Custom Table Pagination Footer */}
+            {totalCount > pageSize && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-bg/10">
+                <p className="text-xs text-text/50 font-semibold">
+                  Showing{" "}
+                  <span className="font-bold text-text">
+                    {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)}
+                  </span>{" "}
+                  of <span className="font-bold text-text">{totalCount}</span> logs
+                </p>
+                <div className="flex gap-1.5">
+                  <Button
+                    disabled={page === 1}
+                    onClick={() => setPage(page - 1)}
+                    size="small"
+                    className="rounded-lg text-xs font-bold cursor-pointer"
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    disabled={page * pageSize >= totalCount}
+                    onClick={() => setPage(page + 1)}
+                    size="small"
+                    className="rounded-lg text-xs font-bold cursor-pointer"
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Attendance Health Tab Content */}
+      {activeTab === "health" && (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Stats Filters Section */}
+          <div className="bg-surface border border-border rounded-2xl p-4 flex flex-wrap items-center gap-3">
+            <div className="w-full sm:w-64 relative">
+              <Input
+                prefix={<Search size={15} className="text-text/30 mr-1" />}
+                placeholder="Search stats by staff name..."
+                value={statsState.searchRaw}
+                onChange={(e) => statsState.setSearchRaw(e.target.value)}
+                allowClear
+                className="h-10 rounded-xl"
+              />
+            </div>
+
+            <Select
+              placeholder="Department"
+              value={statsState.department || undefined}
+              onChange={(val) => statsState.setDepartment(val || "")}
+              allowClear
+              className="w-full sm:w-40 h-10 rounded-xl"
+            >
+              {departments.map((d) => (
+                <Option key={d} value={d}>{d}</Option>
+              ))}
+            </Select>
+
+            {(statsState.searchRaw || statsState.department) && (
+              <Button
+                type="text"
+                onClick={() => {
+                  statsState.setSearchRaw("");
+                  statsState.setDepartment("");
+                }}
+                icon={<X size={14} />}
+                className="flex items-center gap-1.5 text-xs font-semibold text-text/50 hover:text-text cursor-pointer"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+
+          {/* Stats Grid Table */}
+          <AttendanceStatsTable
+            records={statsState.data}
+            total={statsState.totalCount}
+            page={statsState.page}
+            pageSize={statsState.pageSize}
+            onPageChange={statsState.setPage}
+            loading={statsState.loading}
+          />
+        </div>
+      )}
+
       <Modal
         title={
           <div className="flex items-center gap-2 text-primary font-bold">
@@ -665,7 +600,7 @@ export default function Attendance() {
               label="Log Date"
               rules={[{ required: true, message: "Please select date!" }]}
             >
-              <DatePicker className="w-full h-11 rounded-xl" format="YYYY-MM-DD" />
+              <DatePicker className="w-full h-11 rounded-xl" format="YYYY-MM-DD" inputReadOnly />
             </Form.Item>
 
             <Form.Item
@@ -683,11 +618,11 @@ export default function Attendance() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Form.Item name="checkIn" label="Check In Time">
-              <TimePicker format="HH:mm" className="w-full h-11 rounded-xl" placeholder="HH:mm" />
+              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
             </Form.Item>
 
             <Form.Item name="checkOut" label="Check Out Time">
-              <TimePicker format="HH:mm" className="w-full h-11 rounded-xl" placeholder="HH:mm" />
+              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
             </Form.Item>
           </div>
 
@@ -712,7 +647,6 @@ export default function Attendance() {
         </Form>
       </Modal>
 
-      {/* Edit Attendance Log Modal */}
       <Modal
         title={
           <div className="flex items-center gap-2 text-primary font-bold">
@@ -756,11 +690,11 @@ export default function Attendance() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Form.Item name="checkIn" label="Check In Time">
-              <TimePicker format="HH:mm" className="w-full h-11 rounded-xl" placeholder="HH:mm" />
+              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
             </Form.Item>
 
             <Form.Item name="checkOut" label="Check Out Time">
-              <TimePicker format="HH:mm" className="w-full h-11 rounded-xl" placeholder="HH:mm" />
+              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
             </Form.Item>
           </div>
 

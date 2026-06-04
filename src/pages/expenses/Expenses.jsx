@@ -385,6 +385,7 @@ export default function Expenses() {
             value={selectedMonth}
             onChange={(date) => setSelectedMonth(date)}
             className="h-10 rounded-xl w-full sm:w-44"
+            inputReadOnly
           />
 
           <div className="w-full md:w-64">

@@ -560,6 +560,7 @@ export default function useAttendance() {
     editModalOpen,
     setEditModalOpen,
     editingRecord,
+    setEditingRecord,
     handleOpenEdit,
     handleConfirmEdit,
     handleDeleteRecord,

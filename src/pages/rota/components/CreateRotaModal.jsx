@@ -81,7 +81,7 @@ export default function CreateRotaModal({ open, onClose, onCreate, loading, staf
             label="Month & Year"
             rules={[{ required: true, message: 'Please select month and year' }]}
           >
-            <DatePicker picker="month" className="w-full" />
+            <DatePicker picker="month" className="w-full" inputReadOnly />
           </Form.Item>
         </div>
 
@@ -165,7 +165,7 @@ export default function CreateRotaModal({ open, onClose, onCreate, loading, staf
                                 initialValue={[dayjs('06:00', 'HH:mm'), dayjs('23:00', 'HH:mm')]}
                                 className="mb-0"
                               >
-                                <TimePicker.RangePicker format="HH:mm" size="small" style={{ width: 150 }} />
+                                <TimePicker.RangePicker format="h:mm a" use12Hours size="small" style={{ width: 150 }} inputReadOnly />
                               </Form.Item>
 
                               <Form.Item

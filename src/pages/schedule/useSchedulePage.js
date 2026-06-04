@@ -317,15 +317,20 @@ export default function useSchedulePage() {
         const staffMember = staffMembers.find((s) => s.id === values.staffId);
         const shiftConfig = SHIFT_TYPES.find((t) => t.key === values.shiftType);
 
+        const formatTime = (timeVal) => {
+          if (!timeVal) return null;
+          if (dayjs.isDayjs(timeVal)) return timeVal.format("HH:mm");
+          return timeVal;
+        };
 
         const payload = {
           employee_id: values.staffId,
           shift_date: values.date,
           shift_type: values.shiftType.charAt(0).toUpperCase() + values.shiftType.slice(1),
-          start_time: values.startTime || shiftConfig?.startTime,
-          end_time: values.endTime || shiftConfig?.endTime,
-          break_start: values.breakStart || "12:00",
-          break_end: values.breakEnd || "13:00",
+          start_time: formatTime(values.startTime) || shiftConfig?.startTime,
+          end_time: formatTime(values.endTime) || shiftConfig?.endTime,
+          break_start: formatTime(values.breakStart) || "12:00",
+          break_end: formatTime(values.breakEnd) || "13:00",
           notes: values.notes || "",
         };
 
