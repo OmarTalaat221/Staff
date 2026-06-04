@@ -15,3 +15,17 @@ export const getEmployeesAttendanceStats = async (page = 1, pageSize = 10, searc
     throw error;
   }
 };
+
+export const getEmployeeLogs = async (employeeId, date) => {
+  try {
+    const response = await apiInstance.get("employees/get_employee_logs.php", {
+      params: {
+        employee_id: employeeId,
+        date: date,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

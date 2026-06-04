@@ -1,147 +1,24 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
-import isoWeek from "dayjs/plugin/isoWeek";
 import toast from "react-hot-toast";
+import { getAllStaff } from "../../features/Staff/staffService";
+import { getEmployeeLogs } from "../../features/Attendance/attendanceService";
 
-dayjs.extend(isoWeek);
-
-const STORAGE_KEY = "nm_attendance_records";
-
-const DEPARTMENTS = ["Service", "Kitchen", "Finance", "Logistics", "Management", "Bar", "Staff Food"];
-const ROLES = ["Waiter", "Chef", "Cashier", "Host", "Delivery", "Manager", "Cleaner", "Barista", "Waitress"];
 const PAGE_SIZE = 10;
-
-const STAFF_LIST = [
-  { id: 1, name: "Ahmed Hassan", role: "Waiter", department: "Service" },
-  { id: 2, name: "Sara Ali", role: "Chef", department: "Kitchen" },
-  { id: 3, name: "Mohamed Youssef", role: "Cashier", department: "Finance" },
-  { id: 4, name: "Fatma Omar", role: "Waiter", department: "Service" },
-  { id: 5, name: "Khaled Mahmoud", role: "Chef", department: "Kitchen" },
-  { id: 6, name: "Nour Ibrahim", role: "Host", department: "Service" },
-  { id: 7, name: "Omar Adel", role: "Delivery", department: "Logistics" },
-  { id: 8, name: "Yara Mostafa", role: "Manager", department: "Management" },
-];
-
 const SHIFTS = [
   { name: "Morning", start: "08:00", end: "16:00" },
   { name: "Afternoon", start: "14:00", end: "22:00" },
   { name: "Evening", start: "18:00", end: "02:00" },
 ];
-
-const staffMap = Object.fromEntries(STAFF_LIST.map((s) => [s.id, s]));
-
-// Check if weekend
-const isWeekend = (dow) => dow === 0 || dow === 6;
-
-// Generate 60 days of mock attendance
-const generateMockAttendance = () => {
-  const records = [];
-  const today = dayjs();
-
-  for (let sId = 1; sId <= 8; sId++) {
-    const s = staffMap[sId];
-    for (let i = 59; i >= 1; i--) { // i >= 1 so today is open for live clock-in/out!
-      const date = today.subtract(i, "day");
-      const dow = date.day();
-
-      if (isWeekend(dow)) {
-        records.push({
-          id: `${sId}-${date.format("YYYY-MM-DD")}`,
-          staffId: sId,
-          staffName: s.name,
-          staffRole: s.role,
-          department: s.department,
-          date: date.format("YYYY-MM-DD"),
-          shiftName: null,
-          scheduledStart: null,
-          scheduledEnd: null,
-          checkIn: null,
-          checkOut: null,
-          breakMinutes: 0,
-          workedMinutes: 0,
-          lateMinutes: 0,
-          overtimeMinutes: 0,
-          status: "off",
-        });
-        continue;
-      }
-
-      const shiftIndex = (sId + i) % SHIFTS.length;
-      const shift = SHIFTS[shiftIndex];
-      const seed = (sId * 13 + i * 7) % 100;
-
-      let status = "present";
-      if (seed > 95) status = "on-leave";
-      else if (seed > 85) status = "absent";
-      else if (seed > 70) status = "late";
-
-      if (status === "absent" || status === "on-leave") {
-        records.push({
-          id: `${sId}-${date.format("YYYY-MM-DD")}`,
-          staffId: sId,
-          staffName: s.name,
-          staffRole: s.role,
-          department: s.department,
-          date: date.format("YYYY-MM-DD"),
-          shiftName: shift.name,
-          scheduledStart: shift.start,
-          scheduledEnd: shift.end,
-          checkIn: null,
-          checkOut: null,
-          breakMinutes: 30,
-          workedMinutes: 0,
-          lateMinutes: 0,
-          overtimeMinutes: 0,
-          status,
-        });
-        continue;
-      }
-
-      const lateMinutes = status === "late" ? 5 + (seed % 40) : 0;
-      const overtimeMinutes = (seed * 3) % 60;
-      const breakMinutes = 30;
-      const workedMinutes = 8 * 60 - breakMinutes - lateMinutes + overtimeMinutes;
-
-      const [startH, startM] = shift.start.split(":").map(Number);
-      const ciTotal = startH * 60 + startM + lateMinutes;
-      const checkIn = `${String(Math.floor(ciTotal / 60) % 24).padStart(2, "0")}:${String(ciTotal % 60).padStart(2, "0")}`;
-
-      const [endH, endM] = shift.end.split(":").map(Number);
-      const coTotal = endH * 60 + endM + overtimeMinutes;
-      const checkOut = `${String(Math.floor(coTotal / 60) % 24).padStart(2, "0")}:${String(coTotal % 60).padStart(2, "0")}`;
-
-      records.push({
-        id: `${sId}-${date.format("YYYY-MM-DD")}`,
-        staffId: sId,
-        staffName: s.name,
-        staffRole: s.role,
-        department: s.department,
-        date: date.format("YYYY-MM-DD"),
-        shiftName: shift.name,
-        scheduledStart: shift.start,
-        scheduledEnd: shift.end,
-        checkIn,
-        checkOut,
-        breakMinutes,
-        workedMinutes,
-        lateMinutes,
-        overtimeMinutes,
-        status,
-      });
-    }
-  }
-
-  // Sort descending by date
-  return records.sort((a, b) => b.date.localeCompare(a.date));
-};
+const DEPARTMENTS = ["Floor", "Kitchen", "Finance", "Logistics", "Management", "Bar", "Staff Food"];
+const ROLES = ["Waiter", "Chef", "Cashier", "Host", "Delivery", "Manager", "Cleaner", "Barista", "Waitress"];
 
 export default function useAttendance() {
   const [records, setRecords] = useState([]);
+  const [staffList, setStaffList] = useState([]);
+  const [selectedStaffId, setSelectedStaffId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [liveTime, setLiveTime] = useState(dayjs());
-
-  // Clock widget state
-  const [selectedStaffId, setSelectedStaffId] = useState(1);
-  const [selectedShift, setSelectedShift] = useState("Morning");
 
   // Filters state
   const [searchText, setSearchText] = useState("");
@@ -157,25 +34,6 @@ export default function useAttendance() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
 
-  // Initialize and load from local storage
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setRecords(JSON.parse(stored));
-      } catch (e) {
-        console.error("Failed to parse stored attendance", e);
-        const initial = generateMockAttendance();
-        setRecords(initial);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-      }
-    } else {
-      const initial = generateMockAttendance();
-      setRecords(initial);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-    }
-  }, []);
-
   // Live timer tick
   useEffect(() => {
     const timer = setInterval(() => {
@@ -184,188 +42,116 @@ export default function useAttendance() {
     return () => clearInterval(timer);
   }, []);
 
-  // Save records helper
-  const saveRecords = (newRecords) => {
-    setRecords(newRecords);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newRecords));
-  };
-
-  // Find selected staff details
-  const selectedStaff = useMemo(() => staffMap[selectedStaffId] || STAFF_LIST[0], [selectedStaffId]);
-
-  // Check if selected staff is clocked in today
-  const todayRecordForSelected = useMemo(() => {
-    const todayStr = dayjs().format("YYYY-MM-DD");
-    return records.find((r) => r.staffId === selectedStaffId && r.date === todayStr && r.status !== "off") || null;
-  }, [records, selectedStaffId]);
-
-  // Live work duration counter
-  const workedLiveTime = useMemo(() => {
-    if (!todayRecordForSelected || !todayRecordForSelected.checkIn || todayRecordForSelected.checkOut) return null;
-
-    const todayStr = dayjs().format("YYYY-MM-DD");
-    const [inH, inM] = todayRecordForSelected.checkIn.split(":").map(Number);
-    const checkInDateTime = dayjs(`${todayStr}T${String(inH).padStart(2, "0")}:${String(inM).padStart(2, "0")}:00`);
-
-    const diffSecs = liveTime.diff(checkInDateTime, "second");
-    if (diffSecs < 0) return "00:00:00";
-
-    const h = Math.floor(diffSecs / 3600);
-    const m = Math.floor((diffSecs % 3600) / 60);
-    const s = diffSecs % 60;
-
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }, [todayRecordForSelected, liveTime]);
-
-  // Handle Clock In
-  const handleClockIn = useCallback((staffId, shiftName) => {
-    const todayStr = dayjs().format("YYYY-MM-DD");
-    const currentShift = SHIFTS.find((s) => s.name === shiftName) || SHIFTS[0];
-    const s = staffMap[staffId];
-
-    if (!s) {
-      toast.error("Invalid staff member selected!");
-      return;
-    }
-
-    // Check if already clocked in
-    const existing = records.find((r) => r.staffId === staffId && r.date === todayStr);
-    if (existing && existing.checkIn) {
-      toast.error(`${s.name} is already clocked in today!`);
-      return;
-    }
-
-    const checkInTimeStr = dayjs().format("HH:mm");
-    
-    // Calculate if late
-    const [schedH, schedM] = currentShift.start.split(":").map(Number);
-    const [actH, actM] = checkInTimeStr.split(":").map(Number);
-    
-    const schedTotal = schedH * 60 + schedM;
-    const actTotal = actH * 60 + actM;
-    const diff = actTotal - schedTotal;
-
-    const isLate = diff > 5; // 5-minute grace period
-    const lateMinutes = isLate ? diff : 0;
-    const status = isLate ? "late" : "present";
-
-    const newRecord = {
-      id: `${staffId}-${todayStr}`,
-      staffId,
-      staffName: s.name,
-      staffRole: s.role,
-      department: s.department,
-      date: todayStr,
-      shiftName: currentShift.name,
-      scheduledStart: currentShift.start,
-      scheduledEnd: currentShift.end,
-      checkIn: checkInTimeStr,
-      checkOut: null,
-      breakMinutes: 30,
-      workedMinutes: 0,
-      lateMinutes,
-      overtimeMinutes: 0,
-      status,
-    };
-
-    let updated;
-    if (existing) {
-      // Overwrite off / absent / on-leave
-      updated = records.map((r) => (r.id === existing.id ? newRecord : r));
-    } else {
-      updated = [newRecord, ...records];
-    }
-
-    saveRecords(updated);
-    toast.success(`${s.name} clocked in successfully at ${checkInTimeStr}!`);
-  }, [records]);
-
-  // Handle Clock Out
-  const handleClockOut = useCallback((staffId) => {
-    const todayStr = dayjs().format("YYYY-MM-DD");
-    const s = staffMap[staffId];
-
-    if (!s) return;
-
-    const existing = records.find((r) => r.staffId === staffId && r.date === todayStr);
-    if (!existing || !existing.checkIn) {
-      toast.error(`${s.name} is not clocked in today!`);
-      return;
-    }
-
-    if (existing.checkOut) {
-      toast.error(`${s.name} has already clocked out today!`);
-      return;
-    }
-
-    const checkOutTimeStr = dayjs().format("HH:mm");
-
-    // Calculate worked minutes
-    const [inH, inM] = existing.checkIn.split(":").map(Number);
-    const [outH, outM] = checkOutTimeStr.split(":").map(Number);
-    
-    let workedMinutes = (outH * 60 + outM) - (inH * 60 + inM) - (existing.breakMinutes || 30);
-    if (workedMinutes < 0) workedMinutes = 0;
-
-    // Calculate overtime
-    const [schedEndH, schedEndM] = (existing.scheduledEnd || "16:00").split(":").map(Number);
-    const schedEndTotal = schedEndH * 60 + schedEndM;
-    const actOutTotal = outH * 60 + outM;
-    const overtimeDiff = actOutTotal - schedEndTotal;
-    const overtimeMinutes = overtimeDiff > 0 ? overtimeDiff : 0;
-
-    const updatedRecord = {
-      ...existing,
-      checkOut: checkOutTimeStr,
-      workedMinutes,
-      overtimeMinutes,
-    };
-
-    const updated = records.map((r) => (r.id === existing.id ? updatedRecord : r));
-    saveRecords(updated);
-    toast.success(`${s.name} clocked out successfully at ${checkOutTimeStr}!`);
-  }, [records]);
-
-  // Filter records by date/period
-  const periodFiltered = useMemo(() => {
-    return records.filter((r) => {
-      if (r.status === "off") return false; // Hide weekend offs by default to keep logs clean
-
-      const d = dayjs(r.date);
-      if (period === "day") {
-        return d.isSame(selectedDate, "day");
-      } else if (period === "week") {
-        const start = selectedDate.startOf("isoWeek");
-        const end = selectedDate.endOf("isoWeek");
-        return (d.isSame(start, "day") || d.isAfter(start, "day")) && (d.isSame(end, "day") || d.isBefore(end, "day"));
-      } else {
-        return d.isSame(selectedDate, "month");
+  // Fetch staff list on mount
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const response = await getAllStaff();
+        if (response && response.status === "success" && response.data) {
+          const list = response.data.map(item => ({
+            id: item.employee_id,
+            name: item.full_name,
+            role: item.role || "Staff",
+            department: item.department || "General",
+          }));
+          setStaffList(list);
+          if (list.length > 0) {
+            setSelectedStaffId(list[0].id);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load staff list", e);
       }
-    });
-  }, [records, period, selectedDate]);
+    };
+    fetchStaff();
+  }, []);
 
-  // Apply other search & drop-down filters
+  // Selected staff details
+  const selectedStaff = useMemo(() => {
+    return staffList.find(s => String(s.id) === String(selectedStaffId)) || null;
+  }, [staffList, selectedStaffId]);
+
+  // Fetch employee logs
+  const fetchLogs = useCallback(async () => {
+    if (!selectedStaffId) return;
+    setLoading(true);
+    try {
+      const dateStr = selectedDate.format("YYYY-MM-DD");
+      const response = await getEmployeeLogs(selectedStaffId, dateStr);
+      if (response && response.status === "success" && response.data) {
+        const s = selectedStaff || { name: "Staff", role: "Staff", department: "General" };
+        const enriched = response.data.map(item => {
+          const checkIn = item.check_in_time ? item.check_in_time.split(" ")[1].substring(0, 5) : null;
+          const checkOut = item.check_out_time ? item.check_out_time.split(" ")[1].substring(0, 5) : null;
+          
+          let workedMinutes = 0;
+          if (checkIn && checkOut) {
+            const [inH, inM] = checkIn.split(":").map(Number);
+            const [outH, outM] = checkOut.split(":").map(Number);
+            workedMinutes = (outH * 60 + outM) - (inH * 60 + inM) - 30; // assume 30m break
+            if (workedMinutes < 0) workedMinutes = 0;
+          }
+          
+          const lateMinutes = parseInt(item.late_arrival_minutes || "0");
+          let status = "absent";
+          if (item.attendance_id) {
+            status = lateMinutes > 0 ? "late" : "present";
+          }
+
+          return {
+            id: item.shift_id,
+            attendanceId: item.attendance_id,
+            staffId: selectedStaffId,
+            staffName: s.name,
+            staffRole: s.role,
+            department: s.department,
+            date: item.shift_date,
+            shiftName: item.shift_type,
+            scheduledStart: item.start_time ? item.start_time.substring(0, 5) : null,
+            scheduledEnd: item.end_time ? item.end_time.substring(0, 5) : null,
+            checkIn: checkIn ? dayjs(checkIn, "HH:mm").format("h:mm a") : null,
+            checkOut: checkOut ? dayjs(checkOut, "HH:mm").format("h:mm a") : null,
+            workedMinutes,
+            lateMinutes,
+            status,
+          };
+        });
+        setRecords(enriched);
+      } else {
+        setRecords([]);
+      }
+    } catch (e) {
+      console.error("Failed to load logs", e);
+      setRecords([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedStaffId, selectedDate, selectedStaff]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
+
+  // Filters logic
   const filteredRecords = useMemo(() => {
     const q = searchText.trim().toLowerCase();
-    return periodFiltered.filter((r) => {
+    return records.filter((r) => {
       if (q && !r.staffName.toLowerCase().includes(q)) return false;
       if (department && r.department !== department) return false;
       if (role && r.staffRole !== role) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       return true;
     });
-  }, [periodFiltered, searchText, department, role, statusFilter]);
+  }, [records, searchText, department, role, statusFilter]);
 
-  // Compute stats in current period filter
+  // Stats calculation
   const stats = useMemo(() => {
-    const total = periodFiltered.length;
-    const present = periodFiltered.filter((r) => r.status === "present" || r.status === "late").length;
-    const late = periodFiltered.filter((r) => r.status === "late").length;
-    const absent = periodFiltered.filter((r) => r.status === "absent").length;
-    const onLeave = periodFiltered.filter((r) => r.status === "on-leave").length;
+    const total = filteredRecords.length;
+    const present = filteredRecords.filter((r) => r.status === "present" || r.status === "late").length;
+    const late = filteredRecords.filter((r) => r.status === "late").length;
+    const absent = filteredRecords.filter((r) => r.status === "absent").length;
     
-    // Average hours worked
-    const workingDays = periodFiltered.filter((r) => r.status === "present" || r.status === "late");
+    const workingDays = filteredRecords.filter((r) => r.status === "present" || r.status === "late");
     const totalMinutes = workingDays.reduce((sum, r) => sum + (r.workedMinutes || 0), 0);
     const avgMins = workingDays.length > 0 ? totalMinutes / workingDays.length : 0;
     const avgH = Math.floor(avgMins / 60);
@@ -377,15 +163,13 @@ export default function useAttendance() {
       present,
       late,
       absent,
-      onLeave,
+      onLeave: 0,
       averageHours: averageHoursFormatted,
     };
-  }, [periodFiltered]);
+  }, [filteredRecords]);
 
-  // Total records count after all filters
   const totalCount = filteredRecords.length;
 
-  // Pagination slice
   const pagedRecords = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
     return filteredRecords.slice(start, start + PAGE_SIZE);
@@ -401,115 +185,23 @@ export default function useAttendance() {
     setPage(1);
   }, []);
 
-  // Add / Edit Manual actions
-  const handleOpenAdd = () => {
-    setAddModalOpen(true);
+  // Modals operations (Mock/Empty stub implementations)
+  const handleOpenAdd = () => setAddModalOpen(true);
+  const handleConfirmAdd = () => {
+    toast.error("Manual add is not configured for backend.");
+    setAddModalOpen(false);
   };
-
+  
   const handleOpenEdit = (record) => {
     setEditingRecord(record);
     setEditModalOpen(true);
   };
-
-  const handleConfirmAdd = (values) => {
-    const todayStr = values.date.format("YYYY-MM-DD");
-    const s = staffMap[values.staffId];
-    const currentShift = SHIFTS.find((sh) => sh.name === values.shiftName) || SHIFTS[0];
-
-    if (!s) return;
-
-    // Check if record already exists
-    const recId = `${values.staffId}-${todayStr}`;
-    const exists = records.some((r) => r.id === recId);
-    if (exists) {
-      toast.error(`Attendance record already exists for ${s.name} on ${todayStr}!`);
-      return;
-    }
-
-    const checkIn = values.checkIn ? values.checkIn.format("HH:mm") : null;
-    const checkOut = values.checkOut ? values.checkOut.format("HH:mm") : null;
-
-    let workedMinutes = 0;
-    let overtimeMinutes = 0;
-    if (checkIn && checkOut) {
-      const [inH, inM] = checkIn.split(":").map(Number);
-      const [outH, outM] = checkOut.split(":").map(Number);
-      workedMinutes = (outH * 60 + outM) - (inH * 60 + inM) - 30; // 30 min break
-      if (workedMinutes < 0) workedMinutes = 0;
-
-      const [endH, endM] = currentShift.end.split(":").map(Number);
-      const overtimeDiff = (outH * 60 + outM) - (endH * 60 + endM);
-      overtimeMinutes = overtimeDiff > 0 ? overtimeDiff : 0;
-    }
-
-    const newRecord = {
-      id: recId,
-      staffId: values.staffId,
-      staffName: s.name,
-      staffRole: s.role,
-      department: s.department,
-      date: todayStr,
-      shiftName: currentShift.name,
-      scheduledStart: currentShift.start,
-      scheduledEnd: currentShift.end,
-      checkIn,
-      checkOut,
-      breakMinutes: 30,
-      workedMinutes,
-      lateMinutes: values.lateMinutes || 0,
-      overtimeMinutes,
-      status: values.status,
-    };
-
-    saveRecords([newRecord, ...records]);
-    setAddModalOpen(false);
-    toast.success("Attendance record added successfully!");
-  };
-
-  const handleConfirmEdit = (values) => {
-    if (!editingRecord) return;
-
-    const checkIn = values.checkIn ? values.checkIn.format("HH:mm") : null;
-    const checkOut = values.checkOut ? values.checkOut.format("HH:mm") : null;
-    const currentShift = SHIFTS.find((sh) => sh.name === values.shiftName) || SHIFTS[0];
-
-    let workedMinutes = 0;
-    let overtimeMinutes = 0;
-    if (checkIn && checkOut) {
-      const [inH, inM] = checkIn.split(":").map(Number);
-      const [outH, outM] = checkOut.split(":").map(Number);
-      workedMinutes = (outH * 60 + outM) - (inH * 60 + inM) - 30; // 30 min break
-      if (workedMinutes < 0) workedMinutes = 0;
-
-      const [endH, endM] = currentShift.end.split(":").map(Number);
-      const overtimeDiff = (outH * 60 + outM) - (endH * 60 + endM);
-      overtimeMinutes = overtimeDiff > 0 ? overtimeDiff : 0;
-    }
-
-    const updatedRecord = {
-      ...editingRecord,
-      shiftName: currentShift.name,
-      scheduledStart: currentShift.start,
-      scheduledEnd: currentShift.end,
-      checkIn,
-      checkOut,
-      workedMinutes,
-      overtimeMinutes,
-      lateMinutes: values.lateMinutes || 0,
-      status: values.status,
-    };
-
-    const updated = records.map((r) => (r.id === editingRecord.id ? updatedRecord : r));
-    saveRecords(updated);
+  const handleConfirmEdit = () => {
+    toast.error("Manual edit is not configured for backend.");
     setEditModalOpen(false);
-    setEditingRecord(null);
-    toast.success("Attendance record updated successfully!");
   };
-
-  const handleDeleteRecord = (recordId) => {
-    const updated = records.filter((r) => r.id !== recordId);
-    saveRecords(updated);
-    toast.success("Attendance record deleted successfully!");
+  const handleDeleteRecord = () => {
+    toast.error("Delete record is not configured for backend.");
   };
 
   return {
@@ -520,21 +212,20 @@ export default function useAttendance() {
     pageSize: PAGE_SIZE,
     stats,
     liveTime,
-    staffList: STAFF_LIST,
+    staffList,
     shifts: SHIFTS,
     departments: DEPARTMENTS,
     roles: ROLES,
+    loading,
 
-    // Clock state & functions
+    // Selected Employee State
     selectedStaffId,
     setSelectedStaffId,
     selectedStaff,
-    selectedShift,
-    setSelectedShift,
-    todayRecordForSelected,
-    workedLiveTime,
-    handleClockIn,
-    handleClockOut,
+    todayRecordForSelected: null,
+    workedLiveTime: null,
+    handleClockIn: () => {},
+    handleClockOut: () => {},
 
     // Filters
     searchText,
@@ -564,5 +255,6 @@ export default function useAttendance() {
     handleOpenEdit,
     handleConfirmEdit,
     handleDeleteRecord,
+    refetch: fetchLogs,
   };
 }
