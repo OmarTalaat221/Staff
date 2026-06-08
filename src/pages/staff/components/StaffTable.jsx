@@ -1,5 +1,5 @@
 import { memo, useMemo, useCallback, useState } from "react";
-import { Table, Avatar, Dropdown, Button } from "antd";
+import { Table, Avatar, Dropdown, Button, Modal, Input } from "antd";
 import {
   MoreHorizontal,
   Eye,
@@ -9,9 +9,11 @@ import {
   UserCheck,
   UserX,
   ExternalLink,
+  Lock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import StaffStatusBadge from "./StaffStatusBadge";
+import apiInstance from "../../../shared/services/api/apiInstance";
 
 
 const paginationConfig = {
@@ -95,6 +97,13 @@ const StaffTable = memo(function StaffTable({
 }) {
   const [visibleSalaries, setVisibleSalaries] = useState({});
   const [showAllSalaries, setShowAllSalaries] = useState(false);
+  const [salaryUnlocked, setSalaryUnlocked] = useState(false);
+
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordValue, setPasswordValue] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [pendingAction, setPendingAction] = useState(null);
 
   const toggleAllSalaries = useCallback(() => {
     const newState = !showAllSalaries;
@@ -114,6 +123,56 @@ const StaffTable = memo(function StaffTable({
       [id]: !prev[id],
     }));
   }, []);
+
+  const openPasswordModal = useCallback((action) => {
+    setPendingAction(action);
+    setPasswordValue("");
+    setPasswordError("");
+    setPasswordModalOpen(true);
+  }, []);
+
+  const handleSalaryToggle = useCallback((id) => {
+    if (salaryUnlocked) {
+      toggleSalaryVisibility(id);
+    } else {
+      openPasswordModal({ type: "single", id });
+    }
+  }, [salaryUnlocked, toggleSalaryVisibility, openPasswordModal]);
+
+  const handleToggleAll = useCallback(() => {
+    if (salaryUnlocked) {
+      toggleAllSalaries();
+    } else {
+      openPasswordModal({ type: "all" });
+    }
+  }, [salaryUnlocked, toggleAllSalaries, openPasswordModal]);
+
+  const handlePasswordSubmit = useCallback(async () => {
+    if (!passwordValue.trim()) {
+      setPasswordError("Please enter the password");
+      return;
+    }
+    setPasswordLoading(true);
+    setPasswordError("");
+    try {
+      const res = await apiInstance.post("employees/show_price.php", { pass: passwordValue });
+      if (res.data?.status === "success") {
+        setSalaryUnlocked(true);
+        setPasswordModalOpen(false);
+        if (pendingAction?.type === "single") {
+          toggleSalaryVisibility(pendingAction.id);
+        } else if (pendingAction?.type === "all") {
+          toggleAllSalaries();
+        }
+      } else {
+        setPasswordError(res.data?.message || "Wrong password");
+      }
+    } catch {
+      setPasswordError("Something went wrong, please try again");
+    } finally {
+      setPasswordLoading(false);
+    }
+  }, [passwordValue, pendingAction, toggleSalaryVisibility, toggleAllSalaries]);
 
   const columns = useMemo(
     () => [
@@ -180,7 +239,7 @@ const StaffTable = memo(function StaffTable({
             <Button
               type="text"
               size="small"
-              onClick={toggleAllSalaries}
+              onClick={handleToggleAll}
               icon={showAllSalaries ? <EyeOff size={14} className="text-text/50" /> : <Eye size={14} className="text-text/50" />}
             />
           </div>
@@ -192,12 +251,12 @@ const StaffTable = memo(function StaffTable({
           return (
             <div className="flex items-center gap-2">
               <span className={`px-2 py-1 rounded-full ${record?.salary_type === "Monthly" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"} text-sm`}>
-                {isVisible ? `$${salary} ${record?.salary_type}` : 'xxxxx'}
+                {isVisible ? `£${salary} ${record?.salary_type}` : 'xxxxx'}
               </span>
               <Button
                 type="text"
                 size="small"
-                onClick={() => toggleSalaryVisibility(record.id)}
+                onClick={() => handleSalaryToggle(record.id)}
                 icon={isVisible ? <EyeOff size={14} className="text-text/50" /> : <Eye size={14} className="text-text/50" />}
               />
             </div>
@@ -219,18 +278,52 @@ const StaffTable = memo(function StaffTable({
         ),
       },
     ],
-    [onView, onEdit, onDelete, onToggleStatus, visibleSalaries, toggleSalaryVisibility]
+    [onView, onEdit, onDelete, onToggleStatus, visibleSalaries, handleSalaryToggle, handleToggleAll, showAllSalaries]
   );
 
   return (
-    <Table
-      columns={columns}
-      dataSource={data}
-      rowKey="id"
-      loading={loading}
-      pagination={paginationConfig}
-      scroll={{ x: 600 }}
-    />
+    <>
+      <Table
+        columns={columns}
+        dataSource={data}
+        rowKey="id"
+        loading={loading}
+        pagination={paginationConfig}
+        scroll={{ x: 600 }}
+      />
+
+      <Modal
+        open={passwordModalOpen}
+        onCancel={() => setPasswordModalOpen(false)}
+        onOk={handlePasswordSubmit}
+        confirmLoading={passwordLoading}
+        okText="Confirm"
+        cancelText="Cancel"
+        title={
+          <div className="flex items-center gap-2 text-primary font-bold">
+            <Lock size={18} />
+            <span>Enter Password to View Salary</span>
+          </div>
+        }
+      >
+        <div className="py-4 space-y-3">
+          <Input.Password
+            placeholder="Enter password..."
+            value={passwordValue}
+            onChange={(e) => {
+              setPasswordValue(e.target.value);
+              setPasswordError("");
+            }}
+            onPressEnter={handlePasswordSubmit}
+            className="h-11 rounded-xl"
+            autoFocus
+          />
+          {passwordError && (
+            <p className="text-red-500 text-sm">{passwordError}</p>
+          )}
+        </div>
+      </Modal>
+    </>
   );
 });
 

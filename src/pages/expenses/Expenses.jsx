@@ -20,6 +20,25 @@ const StatCard = ({ icon: Icon, label, value, color }) => (
   </div>
 );
 
+const SUPPLIERS = [
+  "Brakes",
+  "Waterdene",
+  "Holdsworth",
+  "Keser",
+  "Tom Hixsons",
+  "Fresho",
+  "Simit and eggs",
+  "Capital",
+  "Delice de France",
+  "Cheltern food group",
+  "Next day coffee",
+];
+
+const PAYMENT_METHODS = [
+  { label: "Cash", value: "Cash" },
+  { label: "Bank Transfer", value: "Bank Transfer" },
+];
+
 export default function Expenses() {
   const [form] = Form.useForm();
   const [expenses, setExpenses] = useState([]);
@@ -28,11 +47,13 @@ export default function Expenses() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [expenseTitles, setExpenseTitles] = useState([]);
+  const selectedTitle = Form.useWatch('title', form);
 
   // Filters state
   const [searchText, setSearchText] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(null);
   const [selectedTitleFilter, setSelectedTitleFilter] = useState(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
 
   const fetchExpenses = async () => {
     setLoading(true);
@@ -102,8 +123,9 @@ export default function Expenses() {
         (item.expense_month || item.expense_date?.slice(0, 7)) === selectedMonth.format("YYYY-MM");
 
       const matchesTitle = !selectedTitleFilter || (item.title === selectedTitleFilter);
+      const matchesPaymentMethod = !selectedPaymentMethod || (item.payment_method === selectedPaymentMethod);
 
-      return matchesSearch && matchesMonth && matchesTitle;
+      return matchesSearch && matchesMonth && matchesTitle && matchesPaymentMethod;
     });
   }, [expenses, searchText, selectedMonth, selectedTitleFilter]);
 
@@ -116,6 +138,8 @@ export default function Expenses() {
       expense_year: String(dayjs().year()),
       title: undefined,
       custom_title: undefined,
+      notes: undefined,
+      payment_method: undefined,
     });
     setModalOpen(true);
   };
@@ -150,6 +174,7 @@ export default function Expenses() {
       expense_month: month,
       expense_year: year,
       notes: record.notes,
+      payment_method: record.payment_method,
     });
     setModalOpen(true);
   };
@@ -171,6 +196,7 @@ export default function Expenses() {
         expense_date: expenseDateISO,
         expense_month: month,
         notes: values.notes || "",
+        payment_method: values.payment_method || "",
       };
 
       let response;
@@ -211,12 +237,13 @@ export default function Expenses() {
     }
   };
 
-  const hasActiveFilters = searchText || selectedMonth || selectedTitleFilter;
+  const hasActiveFilters = searchText || selectedMonth || selectedTitleFilter || selectedPaymentMethod;
 
   const handleClearFilters = () => {
     setSearchText("");
     setSelectedMonth(null);
     setSelectedTitleFilter(null);
+    setSelectedPaymentMethod(null);
   };
 
   const columns = [
@@ -270,6 +297,17 @@ export default function Expenses() {
 
         return <span className="text-text/70 text-xs font-semibold">{out}</span>;
       },
+    },
+    {
+      title: "Payment Method",
+      dataIndex: "payment_method",
+      key: "payment_method",
+      width: 140,
+      render: (val) => val ? (
+        <span className={`text-xs font-semibold px-2 py-1 rounded-lg ${val === "Cash" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}`}>
+          {val}
+        </span>
+      ) : <span className="text-text/30 text-xs">—</span>,
     },
     {
       title: "Created At",
@@ -400,6 +438,17 @@ export default function Expenses() {
             />
           </div>
 
+          <div className="w-full md:w-48">
+            <Select
+              placeholder="Filter by payment"
+              allowClear
+              value={selectedPaymentMethod}
+              onChange={(val) => setSelectedPaymentMethod(val)}
+              options={PAYMENT_METHODS}
+              className="h-10 rounded-xl w-full"
+            />
+          </div>
+
           {hasActiveFilters && (
             <Button
               type="text"
@@ -464,6 +513,7 @@ export default function Expenses() {
               className="w-full h-11 rounded-xl"
               options={expenseTitles.map((t) => ({ label: t, value: t }))}
               allowClear
+              onChange={() => form.setFieldValue('notes', undefined)}
             />
           </Form.Item>
           
@@ -510,11 +560,39 @@ export default function Expenses() {
             </Form.Item>
           </div>
 
+          {selectedTitle === "Suppliers" ? (
+            <Form.Item
+              name="notes"
+              label="Supplier"
+              rules={[{ required: true, message: "Please select a supplier!" }]}
+            >
+              <Select
+                showSearch
+                placeholder="Select supplier..."
+                className="w-full h-11 rounded-xl"
+                options={SUPPLIERS.map((s) => ({ label: s, value: s }))}
+                allowClear
+              />
+            </Form.Item>
+          ) : (
+            <Form.Item
+              name="notes"
+              label="Additional Notes"
+            >
+              <Input.TextArea rows={3} placeholder="Notes, spare parts details, etc..." className="rounded-xl" />
+            </Form.Item>
+          )}
+
           <Form.Item
-            name="notes"
-            label="Additional Notes"
+            name="payment_method"
+            label="Payment Method"
+            rules={[{ required: true, message: "Please select payment method!" }]}
           >
-            <Input.TextArea rows={3} placeholder="Notes, spare parts details, etc..." className="rounded-xl" />
+            <Select
+              placeholder="Select payment method..."
+              className="w-full h-11 rounded-xl"
+              options={PAYMENT_METHODS}
+            />
           </Form.Item>
         </Form>
       </Modal>
