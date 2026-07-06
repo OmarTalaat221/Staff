@@ -29,3 +29,12 @@ export const getEmployeeLogs = async (employeeId, date) => {
     throw error;
   }
 };
+
+export const updateAttendanceLog = async (payload) => {
+  try {
+    const response = await apiInstance.post("employees/update_attendance.php", payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};

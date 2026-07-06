@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
 import toast from "react-hot-toast";
 import { getAllStaff } from "../../features/Staff/staffService";
-import { getEmployeeLogs } from "../../features/Attendance/attendanceService";
+import { getEmployeeLogs, updateAttendanceLog } from "../../features/Attendance/attendanceService";
 
 const PAGE_SIZE = 10;
 const SHIFTS = [
@@ -208,10 +208,42 @@ export default function useAttendance() {
     setEditingRecord(record);
     setEditModalOpen(true);
   };
-  const handleConfirmEdit = () => {
-    toast.error("Manual edit is not configured for backend.");
-    setEditModalOpen(false);
-  };
+
+  const handleConfirmEdit = useCallback(async (values) => {
+    if (!editingRecord) return;
+    try {
+      const date = editingRecord.date; // "YYYY-MM-DD"
+      const toFullDateTime = (timeVal) => {
+        if (!timeVal) return null;
+        const t = dayjs(timeVal).format("HH:mm:ss");
+        return `${date} ${t}`;
+      };
+
+      const payload = {
+        employee_id: editingRecord.staffId,
+        shift_id: editingRecord.id,
+        attendance_id: editingRecord.attendanceId || undefined,
+        date,
+        check_in_time: toFullDateTime(values.checkIn),
+        check_out_time: toFullDateTime(values.checkOut),
+        late_arrival_minutes: values.lateMinutes ?? 0,
+      };
+
+      const res = await updateAttendanceLog(payload);
+      if (res?.status === "success") {
+        toast.success("Attendance updated successfully!");
+        setEditModalOpen(false);
+        setEditingRecord(null);
+        fetchLogs();
+      } else {
+        toast.error(res?.message || "Update failed");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Update failed");
+    }
+  }, [editingRecord, fetchLogs]);
+
   const handleDeleteRecord = () => {
     toast.error("Delete record is not configured for backend.");
   };

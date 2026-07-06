@@ -211,56 +211,32 @@ export default function Attendance() {
       width: 120,
       render: (v) => <AttendanceStatusBadge status={v} />,
     },
-    // {
-    //   title: "Actions",
-    //   key: "actions",
-    //   width: 120,
-    //   align: "center",
-    //   fixed: "right",
-    //   render: (_, record) => (
-    //     <Space size="middle">
-    //       <Tooltip title="Edit Log">
-    //         <button
-    //           onClick={() => {
-    //             handleOpenEdit(record);
-    //             editForm.setFieldsValue({
-    //               shiftName: record.shiftName || "Morning",
-    //               checkIn: record.checkIn ? dayjs(record.checkIn, "HH:mm") : null,
-    //               checkOut: record.checkOut ? dayjs(record.checkOut, "HH:mm") : null,
-    //               lateMinutes: record.lateMinutes || 0,
-    //               status: record.status,
-    //             });
-    //           }}
-    //           className="text-primary hover:text-primary/70 transition-colors cursor-pointer"
-    //         >
-    //           <Edit2 size={16} />
-    //         </button>
-    //       </Tooltip>
-    //       <Tooltip title="Delete Log">
-    //         <Popconfirm
-    //           title="Delete attendance log?"
-    //           description="Are you sure you want to delete this attendance record?"
-    //           onConfirm={() => handleDeleteRecord(record.id)}
-    //           okText="Delete"
-    //           cancelText="Cancel"
-    //           okButtonProps={{ danger: true }}
-    //         >
-    //           <button className="text-red-500 hover:text-red-600 transition-colors cursor-pointer">
-    //             <Trash2 size={16} />
-    //           </button>
-    //         </Popconfirm>
-    //       </Tooltip>
-    //       <Tooltip title="View Profile">
-    //         <a
-    //           href={`/staff/${record.staffId}`}
-    //           className="text-text/40 hover:text-primary transition-colors cursor-pointer"
-    //         >
-    //           <ArrowUpRight size={16} />
-    //         </a>
-    //       </Tooltip>
-    //     </Space>
-    //   ),
-    // },
+    {
+      title: "",
+      key: "actions",
+      width: 60,
+      align: "center",
+      fixed: "right",
+      render: (_, record) => (
+        <Tooltip title="Edit Log">
+          <button
+            onClick={() => {
+              handleOpenEdit(record);
+              editForm.setFieldsValue({
+                shiftName: record.shiftName || "Morning",
+                checkIn: record.checkIn ? dayjs(record.checkIn, "h:mm a") : null,
+                checkOut: record.checkOut ? dayjs(record.checkOut, "h:mm a") : null,
+                lateMinutes: record.lateMinutes ?? 0,
+                status: record.status,
+              });
+            }}
+            className="text-primary hover:text-primary/70 transition-colors cursor-pointer"
+          >
+            <Edit2 size={16} />
+          </button>
+        </Tooltip>
+      ),
+    },
   ];
 
   return (
@@ -728,7 +704,15 @@ export default function Attendance() {
             </Form.Item>
 
             <Form.Item name="lateMinutes" label="Late Minutes">
-              <Input type="number" min={0} className="h-11 rounded-xl font-semibold" placeholder="0" />
+              <Space.Compact className="w-full">
+                <Input type="number" min={0} className="h-11 rounded-xl font-semibold" placeholder="0" />
+                <Button
+                  className="h-11 rounded-r-xl font-semibold"
+                  onClick={() => editForm.setFieldValue("lateMinutes", 0)}
+                >
+                  Clear
+                </Button>
+              </Space.Compact>
             </Form.Item>
           </div>
         </Form>
