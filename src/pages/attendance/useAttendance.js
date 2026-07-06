@@ -55,9 +55,6 @@ export default function useAttendance() {
             department: item.department || "General",
           }));
           setStaffList(list);
-          if (list.length > 0) {
-            setSelectedStaffId(list[0].id);
-          }
         }
       } catch (e) {
         console.error("Failed to load staff list", e);
@@ -71,54 +68,69 @@ export default function useAttendance() {
     return staffList.find(s => String(s.id) === String(selectedStaffId)) || null;
   }, [staffList, selectedStaffId]);
 
+  const enrichLogs = useCallback((items, staffMember) => {
+    return items.map(item => {
+      const checkIn = item.check_in_time ? item.check_in_time.split(" ")[1].substring(0, 5) : null;
+      const checkOut = item.check_out_time ? item.check_out_time.split(" ")[1].substring(0, 5) : null;
+
+      let workedMinutes = 0;
+      if (checkIn && checkOut) {
+        const [inH, inM] = checkIn.split(":").map(Number);
+        const [outH, outM] = checkOut.split(":").map(Number);
+        workedMinutes = (outH * 60 + outM) - (inH * 60 + inM) - 30;
+        if (workedMinutes < 0) workedMinutes = 0;
+      }
+
+      const lateMinutes = parseInt(item.late_arrival_minutes || "0");
+      const status = item.attendance_id ? (lateMinutes > 0 ? "late" : "present") : "absent";
+
+      return {
+        id: item.shift_id,
+        attendanceId: item.attendance_id,
+        staffId: staffMember.id,
+        staffName: staffMember.name,
+        staffRole: staffMember.role,
+        department: staffMember.department,
+        date: item.shift_date,
+        shiftName: item.shift_type,
+        scheduledStart: item.start_time ? item.start_time.substring(0, 5) : null,
+        scheduledEnd: item.end_time ? item.end_time.substring(0, 5) : null,
+        checkIn: checkIn ? dayjs(checkIn, "HH:mm").format("h:mm a") : null,
+        checkOut: checkOut ? dayjs(checkOut, "HH:mm").format("h:mm a") : null,
+        workedMinutes,
+        lateMinutes,
+        status,
+      };
+    });
+  }, []);
+
   // Fetch employee logs
   const fetchLogs = useCallback(async () => {
-    if (!selectedStaffId) return;
+    if (staffList.length === 0) return;
     setLoading(true);
     try {
       const dateStr = selectedDate.format("YYYY-MM-DD");
-      const response = await getEmployeeLogs(selectedStaffId, dateStr);
-      if (response && response.status === "success" && response.data) {
-        const s = selectedStaff || { name: "Staff", role: "Staff", department: "General" };
-        const enriched = response.data.map(item => {
-          const checkIn = item.check_in_time ? item.check_in_time.split(" ")[1].substring(0, 5) : null;
-          const checkOut = item.check_out_time ? item.check_out_time.split(" ")[1].substring(0, 5) : null;
-          
-          let workedMinutes = 0;
-          if (checkIn && checkOut) {
-            const [inH, inM] = checkIn.split(":").map(Number);
-            const [outH, outM] = checkOut.split(":").map(Number);
-            workedMinutes = (outH * 60 + outM) - (inH * 60 + inM) - 30; // assume 30m break
-            if (workedMinutes < 0) workedMinutes = 0;
-          }
-          
-          const lateMinutes = parseInt(item.late_arrival_minutes || "0");
-          let status = "absent";
-          if (item.attendance_id) {
-            status = lateMinutes > 0 ? "late" : "present";
-          }
 
-          return {
-            id: item.shift_id,
-            attendanceId: item.attendance_id,
-            staffId: selectedStaffId,
-            staffName: s.name,
-            staffRole: s.role,
-            department: s.department,
-            date: item.shift_date,
-            shiftName: item.shift_type,
-            scheduledStart: item.start_time ? item.start_time.substring(0, 5) : null,
-            scheduledEnd: item.end_time ? item.end_time.substring(0, 5) : null,
-            checkIn: checkIn ? dayjs(checkIn, "HH:mm").format("h:mm a") : null,
-            checkOut: checkOut ? dayjs(checkOut, "HH:mm").format("h:mm a") : null,
-            workedMinutes,
-            lateMinutes,
-            status,
-          };
-        });
-        setRecords(enriched);
+      if (selectedStaffId) {
+        const s = selectedStaff || { id: selectedStaffId, name: "Staff", role: "Staff", department: "General" };
+        const response = await getEmployeeLogs(selectedStaffId, dateStr);
+        if (response && response.status === "success" && response.data) {
+          setRecords(enrichLogs(response.data, s));
+        } else {
+          setRecords([]);
+        }
       } else {
-        setRecords([]);
+        // Fetch all staff logs in parallel
+        const results = await Promise.allSettled(
+          staffList.map(s => getEmployeeLogs(s.id, dateStr))
+        );
+        const allRecords = [];
+        results.forEach((result, i) => {
+          if (result.status === "fulfilled" && result.value?.status === "success" && result.value.data) {
+            allRecords.push(...enrichLogs(result.value.data, staffList[i]));
+          }
+        });
+        setRecords(allRecords);
       }
     } catch (e) {
       console.error("Failed to load logs", e);
@@ -126,7 +138,7 @@ export default function useAttendance() {
     } finally {
       setLoading(false);
     }
-  }, [selectedStaffId, selectedDate, selectedStaff]);
+  }, [selectedStaffId, selectedDate, selectedStaff, staffList, enrichLogs]);
 
   useEffect(() => {
     fetchLogs();
