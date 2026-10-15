@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Table,
   Button,
@@ -47,7 +47,6 @@ import useAttendanceStats from "./useAttendanceStats";
 import AttendanceStatsTable from "./components/AttendanceStatsTable";
 import AttendanceWeekView from "./components/AttendanceWeekView";
 import AttendanceMatrixGrid from "./components/AttendanceMatrixGrid";
-import AttendanceShiftDrawer from "./components/AttendanceShiftDrawer";
 
 const { Option } = Select;
 
@@ -157,15 +156,6 @@ export default function Attendance() {
     setSelectedMonth,
     showCost,
     setShowCost,
-    shiftDrawerOpen,
-    shiftDrawerEditShift,
-    preSelectedShiftDay,
-    preSelectedShiftStaffId,
-    handleOpenAddShift,
-    handleOpenEditShift,
-    handleCloseShiftDrawer,
-    handleDeleteShift,
-    refreshShifts,
 
     // View mode (Matrix Grid vs Week View vs Table View)
     viewMode,
@@ -573,15 +563,6 @@ export default function Attendance() {
               )}
 
               <Button
-                type="primary"
-                icon={<Plus size={16} />}
-                onClick={() => handleOpenAddShift()}
-                className="flex items-center gap-1.5 h-10 font-bold rounded-xl text-xs px-3.5"
-              >
-                + Add Shift
-              </Button>
-
-              <Button
                 icon={<Plus size={16} />}
                 onClick={() => {
                   handleOpenAdd();
@@ -668,10 +649,6 @@ export default function Attendance() {
                 records={allRecords}
                 selectedMonth={selectedMonth}
                 showCost={showCost}
-                onOpenAdd={handleOpenAddShift}
-                onOpenEdit={handleOpenEditShift}
-                onDeleteShift={handleDeleteShift}
-                onQuickAddStaff={() => handleOpenAddShift(1)}
                 loading={loading}
               />
             </div>
@@ -1380,20 +1357,6 @@ export default function Attendance() {
         </Form>
       </Modal>
 
-      <AttendanceShiftDrawer
-        open={shiftDrawerOpen}
-        onClose={handleCloseShiftDrawer}
-        onSuccess={refreshShifts}
-        editShift={shiftDrawerEditShift}
-        staffMembers={staffList}
-        preSelectedDay={preSelectedShiftDay}
-        preSelectedStaffId={preSelectedShiftStaffId}
-        allDayNumbers={Array.from(
-          { length: selectedMonth.daysInMonth() },
-          (_, i) => i + 1,
-        )}
-        selectedMonth={selectedMonth}
-      />
     </div>
   );
 }

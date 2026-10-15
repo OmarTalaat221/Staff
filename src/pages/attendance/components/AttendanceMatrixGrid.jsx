@@ -119,10 +119,6 @@ export default function AttendanceMatrixGrid({
   records = [],
   selectedMonth = dayjs(),
   showCost = false,
-  onOpenAdd,
-  onOpenEdit,
-  onDeleteShift,
-  onQuickAddStaff,
   loading = false,
 }) {
   const rotaYear = selectedMonth.year();
@@ -247,14 +243,6 @@ export default function AttendanceMatrixGrid({
                   <div className="text-xs font-bold truncate leading-none text-text">
                     {record.name}
                   </div>
-                  <Tooltip title="View monthly shifts">
-                    <button
-                      onClick={() => onOpenAdd?.(1, record.id)}
-                      className="text-primary/60 hover:text-primary transition-colors cursor-pointer"
-                    >
-                      <Calendar size={11} />
-                    </button>
-                  </Tooltip>
                 </div>
                 <div className="text-[9px] text-text/40 truncate uppercase mt-0.5">
                   {record.role || "Staff"}
@@ -328,29 +316,6 @@ export default function AttendanceMatrixGrid({
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                      {!shift.isLogOnly && (
-                        <>
-                          <button
-                            onClick={() => onOpenEdit?.({ ...shift, day_number: day, employee_id: record.id })}
-                            className="text-primary hover:text-primary/70 cursor-pointer"
-                            title="Edit"
-                          >
-                            <Edit2 size={8} />
-                          </button>
-                          <Popconfirm
-                            title="Delete shift?"
-                            okText="Delete"
-                            cancelText="Cancel"
-                            onConfirm={() => onDeleteShift?.(shift)}
-                          >
-                            <button className="text-red-500 hover:text-red-600 cursor-pointer" title="Delete">
-                              <Trash2 size={8} />
-                            </button>
-                          </Popconfirm>
-                        </>
-                      )}
-                      </div>
                     </div>
 
                     {tasks.length > 0 && (
@@ -416,14 +381,6 @@ export default function AttendanceMatrixGrid({
                   </div>
                 );
               })}
-
-              <button
-                onClick={() => onOpenAdd?.(day, record.id)}
-                className="opacity-0 group-hover:opacity-100 absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-primary text-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-all z-10 cursor-pointer"
-                title="Add Shift"
-              >
-                <Plus size={10} strokeWidth={3} />
-              </button>
 
               {itemsToRender.length === 0 && (
                 <div className="flex-1 flex items-center justify-center text-text/15 text-xs select-none">
@@ -503,7 +460,7 @@ export default function AttendanceMatrixGrid({
     });
 
     return cols;
-  }, [allDayNumbers, rotaYear, rotaMonth, shiftsMap, attendanceMap, showCost, onOpenAdd, onOpenEdit, onDeleteShift]);
+  }, [allDayNumbers, rotaYear, rotaMonth, shiftsMap, attendanceMap, showCost]);
 
   return (
     <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
@@ -564,22 +521,6 @@ export default function AttendanceMatrixGrid({
               </Table.Summary.Cell>
             </Table.Summary.Row>
 
-            {onQuickAddStaff && (
-              <Table.Summary.Row className="bg-white">
-                <Table.Summary.Cell index={0} fixed="left">
-                  <Button
-                    type="dashed"
-                    icon={<Plus size={12} />}
-                    onClick={onQuickAddStaff}
-                    className="w-full flex items-center justify-center gap-1 text-[11px] font-bold border-primary/30 text-primary hover:text-primary/80 hover:border-primary"
-                    style={{ height: 32 }}
-                  >
-                    Add Employee
-                  </Button>
-                </Table.Summary.Cell>
-                <Table.Summary.Cell index={1} colSpan={allDayNumbers.length + 1} />
-              </Table.Summary.Row>
-            )}
           </Table.Summary>
         )}
       />
