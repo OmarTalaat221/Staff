@@ -31,16 +31,16 @@ if ($employee_id && $attendance_task_id) {
         mysqli_stmt_bind_param($stmt, "i", $attendance_task_id);
 
         if (mysqli_stmt_execute($stmt)) {
-            $tasks = array();
+            $tasks = array("opening" => array(), "closing" => array());
             $tasksQuery = mysqli_query($con, "
-                SELECT at.id, at.task_id, t.title, t.description, at.is_done, at.done_at, at.done_by
+                SELECT at.id, at.task_id, at.type, t.title, t.description, at.is_done, at.done_at, at.done_by
                 FROM attendance_tasks at
                 JOIN daily_tasks t ON t.id = at.task_id
                 WHERE at.attendance_id = '{$task['attendance_id']}'
                 ORDER BY at.id ASC
             ");
             while ($tasksQuery && $taskRow = mysqli_fetch_assoc($tasksQuery)) {
-                $tasks[] = $taskRow;
+                $tasks[$taskRow['type']][] = $taskRow;
             }
 
             $response->status = "success";

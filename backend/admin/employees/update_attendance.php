@@ -326,25 +326,26 @@ if (hasParam("daily_tasks")) {
             continue;
         }
         $is_done = !empty($task['is_done']) ? 1 : 0;
-        $keepIds[] = $task_id;
+        $type = ($task['type'] ?? '') === 'closing' ? 'closing' : 'opening';
+        $keepIds[] = "'" . $type . "-" . $task_id . "'";
 
         $stmt = mysqli_prepare($con, "
-            INSERT INTO attendance_tasks (attendance_id, task_id, is_done, done_at, done_by)
-            VALUES (?, ?, ?, IF(? = 1, NOW(), NULL), IF(? = 1, 'admin', NULL))
+            INSERT INTO attendance_tasks (attendance_id, task_id, type, is_done, done_at, done_by)
+            VALUES (?, ?, ?, ?, IF(? = 1, NOW(), NULL), IF(? = 1, 'admin', NULL))
             ON DUPLICATE KEY UPDATE
                 done_at = IF(VALUES(is_done) = 1, IF(is_done = 1, done_at, NOW()), NULL),
                 done_by = IF(VALUES(is_done) = 1, IF(is_done = 1, done_by, 'admin'), NULL),
                 is_done = VALUES(is_done)
         ");
         if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "iiiii", $attendance_id, $task_id, $is_done, $is_done, $is_done);
+            mysqli_stmt_bind_param($stmt, "iisiii", $attendance_id, $task_id, $type, $is_done, $is_done, $is_done);
             mysqli_stmt_execute($stmt);
         }
     }
 
     $deleteQuery = "DELETE FROM attendance_tasks WHERE attendance_id = '$attendance_id'";
     if (count($keepIds) > 0) {
-        $deleteQuery .= " AND task_id NOT IN (" . implode(",", $keepIds) . ")";
+        $deleteQuery .= " AND CONCAT(type, '-', task_id) NOT IN (" . implode(",", $keepIds) . ")";
     }
     mysqli_query($con, $deleteQuery);
 }
@@ -352,7 +353,7 @@ if (hasParam("daily_tasks")) {
 if ($data) {
     $data['daily_tasks'] = array();
     $tasksQuery = mysqli_query($con, "
-        SELECT at.id, at.task_id, t.title, t.description, at.is_done, at.done_at, at.done_by
+        SELECT at.id, at.task_id, at.type, t.title, t.description, at.is_done, at.done_at, at.done_by
         FROM attendance_tasks at
         JOIN daily_tasks t ON t.id = at.task_id
         WHERE at.attendance_id = '$attendance_id'

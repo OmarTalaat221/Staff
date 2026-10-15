@@ -83,17 +83,17 @@ if ($employee_id) {
         $shift->attendance->check_out = $current_shift['check_out_time'] ? substr($current_shift['check_out_time'], 11, 5) : null;
         $shift->attendance->late_arrival = $current_shift['late_arrival_minutes'] ?? 0;
         $shift->attendance->late_departure = $current_shift['late_departure_minutes'] ?? 0;
-        $shift->attendance->daily_tasks = array();
+        $shift->attendance->daily_tasks = array("opening" => array(), "closing" => array());
         if ($shift->attendance->id) {
             $tasksQuery = mysqli_query($con, "
-                SELECT at.id, at.task_id, t.title, t.description, at.is_done, at.done_at, at.done_by
+                SELECT at.id, at.task_id, at.type, t.title, t.description, at.is_done, at.done_at, at.done_by
                 FROM attendance_tasks at
                 JOIN daily_tasks t ON t.id = at.task_id
                 WHERE at.attendance_id = '{$shift->attendance->id}'
                 ORDER BY at.id ASC
             ");
             while ($tasksQuery && $taskRow = mysqli_fetch_assoc($tasksQuery)) {
-                $shift->attendance->daily_tasks[] = $taskRow;
+                $shift->attendance->daily_tasks[$taskRow['type']][] = $taskRow;
             }
         }
 

@@ -43,7 +43,7 @@ if ($sql) {
         $row['daily_tasks'] = array();
         if ($row['attendance_id']) {
             $tasksQuery = mysqli_query($con, "
-                SELECT at.id, at.task_id, t.title, t.description, at.is_done, at.done_at, at.done_by
+                SELECT at.id, at.task_id, at.type, t.title, t.description, at.is_done, at.done_at, at.done_by
                 FROM attendance_tasks at
                 JOIN daily_tasks t ON t.id = at.task_id
                 WHERE at.attendance_id = '{$row['attendance_id']}'

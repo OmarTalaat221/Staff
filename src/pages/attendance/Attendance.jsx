@@ -1,6 +1,46 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Select, DatePicker, TimePicker, Input, Space, Popconfirm, Checkbox, Popover, Tooltip, Segmented, Tag } from "antd";
-import { Plus, Edit2, Trash2, Search, Calendar, User, Clock, CheckCircle2, XCircle, ArrowUpRight, ShieldAlert, Timer, Play, Power, X, UserCheck, ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, List, ListChecks, Circle } from "lucide-react";
+import {
+  Table,
+  Button,
+  Modal,
+  Form,
+  Select,
+  DatePicker,
+  TimePicker,
+  Input,
+  Space,
+  Popconfirm,
+  Checkbox,
+  Popover,
+  Tooltip,
+  Segmented,
+  Tag,
+} from "antd";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
+  Calendar,
+  User,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  ArrowUpRight,
+  ShieldAlert,
+  Timer,
+  Play,
+  Power,
+  X,
+  UserCheck,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
+  LayoutGrid,
+  List,
+  ListChecks,
+  Circle,
+} from "lucide-react";
 import dayjs from "dayjs";
 import useAttendance from "./useAttendance";
 import { getTasks } from "../../features/Tasks/taskService";
@@ -13,8 +53,18 @@ import AttendanceShiftDrawer from "./components/AttendanceShiftDrawer";
 const { Option } = Select;
 
 const ARABIC_MONTHS = [
-  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
-  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+  "يناير",
+  "فبراير",
+  "مارس",
+  "أبريل",
+  "مايو",
+  "يونيو",
+  "يوليو",
+  "أغسطس",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
 // Beautiful StatCard component styled identically to key pages (Expenses, Leave)
@@ -36,7 +86,8 @@ const StatCard = ({ icon: Icon, label, value, color }) => (
 // Initials Avatar Helper
 const InitialsAvatar = ({ name }) => {
   const parts = name.trim().split(" ");
-  const letters = parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
+  const letters =
+    parts.length >= 2 ? parts[0][0] + parts[1][0] : name.slice(0, 2);
   return (
     <div
       className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
@@ -50,16 +101,33 @@ const InitialsAvatar = ({ name }) => {
 // Custom Status Badge
 const AttendanceStatusBadge = ({ status }) => {
   const configs = {
-    present: { text: "Present", style: "bg-success/10 text-success border-success/20" },
-    late: { text: "Late", style: "bg-warning/10 text-warning border-warning/20" },
-    absent: { text: "Absent", style: "bg-danger/10 text-danger border-danger/20" },
-    "on-leave": { text: "On Leave", style: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+    present: {
+      text: "Present",
+      style: "bg-success/10 text-success border-success/20",
+    },
+    late: {
+      text: "Late",
+      style: "bg-warning/10 text-warning border-warning/20",
+    },
+    absent: {
+      text: "Absent",
+      style: "bg-danger/10 text-danger border-danger/20",
+    },
+    "on-leave": {
+      text: "On Leave",
+      style: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+    },
   };
 
-  const config = configs[status] || { text: status, style: "bg-text/10 text-text/70 border-text/20" };
+  const config = configs[status] || {
+    text: status,
+    style: "bg-text/10 text-text/70 border-text/20",
+  };
 
   return (
-    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wider ${config.style}`}>
+    <span
+      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wider ${config.style}`}
+    >
       {config.text}
     </span>
   );
@@ -179,7 +247,12 @@ export default function Attendance() {
       checkOut: record.checkOut ? dayjs(record.checkOut, "h:mm a") : null,
       lateMinutes: record.lateMinutes ?? 0,
       status: record.status,
-      dailyTasks: record.dailyTasks || [],
+      openingTasks: (record.dailyTasks || []).filter(
+        (t) => t.type !== "closing",
+      ),
+      closingTasks: (record.dailyTasks || []).filter(
+        (t) => t.type === "closing",
+      ),
     });
   };
 
@@ -194,7 +267,9 @@ export default function Attendance() {
         <div className="flex items-center gap-2.5 min-w-0">
           <InitialsAvatar name={r.staffName} />
           <div className="min-w-0">
-            <p className="text-sm font-bold text-text truncate leading-tight">{r.staffName}</p>
+            <p className="text-sm font-bold text-text truncate leading-tight">
+              {r.staffName}
+            </p>
             <p className="text-xs text-text/50 truncate mt-0.5 leading-none">
               {r.staffRole} · {r.department}
             </p>
@@ -207,14 +282,20 @@ export default function Attendance() {
       dataIndex: "date",
       key: "date",
       width: 140,
-      render: (v) => <span className="text-sm text-text font-semibold">{dayjs(v).format("DD MMM YYYY")}</span>,
+      render: (v) => (
+        <span className="text-sm text-text font-semibold">
+          {dayjs(v).format("DD MMM YYYY")}
+        </span>
+      ),
     },
     {
       title: "Shift Name",
       dataIndex: "shiftName",
       key: "shift",
       width: 120,
-      render: (v) => <span className="text-sm text-text/70 font-medium">{v || "—"}</span>,
+      render: (v) => (
+        <span className="text-sm text-text/70 font-medium">{v || "—"}</span>
+      ),
     },
     {
       title: "Check In",
@@ -222,7 +303,9 @@ export default function Attendance() {
       key: "checkIn",
       width: 110,
       render: (v) => (
-        <span className={`text-sm font-semibold ${v ? "text-success font-bold" : "text-text/30"}`}>
+        <span
+          className={`text-sm font-semibold ${v ? "text-success font-bold" : "text-text/30"}`}
+        >
           {v || "—"}
         </span>
       ),
@@ -233,7 +316,9 @@ export default function Attendance() {
       key: "checkOut",
       width: 110,
       render: (v) => (
-        <span className={`text-sm font-semibold ${v ? "text-danger font-bold" : "text-text/30"}`}>
+        <span
+          className={`text-sm font-semibold ${v ? "text-danger font-bold" : "text-text/30"}`}
+        >
           {v || "—"}
         </span>
       ),
@@ -252,10 +337,15 @@ export default function Attendance() {
             </span>
           );
         }
-        if (!mins || mins <= 0) return <span className="text-sm text-text/30">—</span>;
+        if (!mins || mins <= 0)
+          return <span className="text-sm text-text/30">—</span>;
         const h = Math.floor(mins / 60);
         const m = mins % 60;
-        return <span className="text-sm text-text font-bold">{h}h {m}m</span>;
+        return (
+          <span className="text-sm text-text font-bold">
+            {h}h {m}m
+          </span>
+        );
       },
     },
     {
@@ -264,10 +354,12 @@ export default function Attendance() {
       key: "late",
       width: 190,
       render: (v, record) => {
-        if (!(v > 0)) return <span className="text-sm font-bold text-text/30">—</span>;
+        if (!(v > 0))
+          return <span className="text-sm font-bold text-text/30">—</span>;
         const hours = Math.floor(v / 60);
         const mins = v % 60;
-        const lateLabel = hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}m` : ""}` : `${mins}m`;
+        const lateLabel =
+          hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}m` : ""}` : `${mins}m`;
         const fmt = (t) => (t ? dayjs(t, "HH:mm").format("h:mm a") : "—");
         return (
           <div className="leading-tight space-y-0.5">
@@ -290,48 +382,81 @@ export default function Attendance() {
       title: "Tasks",
       dataIndex: "dailyTasks",
       key: "tasks",
-      width: 100,
-      render: (tasks = []) => {
-        if (!tasks.length) return <span className="text-sm font-bold text-text/30">—</span>;
-        const doneCount = tasks.filter((t) => t.done).length;
-        const allDone = doneCount === tasks.length;
+      width: 130,
+      render: (allTasks = []) => {
+        if (!allTasks.length)
+          return <span className="text-sm font-bold text-text/30">—</span>;
+        const groups = [
+          {
+            key: "opening",
+            label: "Opening",
+            tasks: allTasks.filter((t) => t.type !== "closing"),
+          },
+          {
+            key: "closing",
+            label: "Closing",
+            tasks: allTasks.filter((t) => t.type === "closing"),
+          },
+        ].filter((g) => g.tasks.length > 0);
         return (
-          <Popover
-            title="Daily Tasks"
-            content={
-              <div className="space-y-2 min-w-[220px]">
-                {tasks.map((t, i) => (
-                  <div key={t.taskId || i} className="flex items-start gap-2">
-                    {t.done ? (
-                      <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
-                    ) : (
-                      <Circle size={15} className="text-text/30 mt-0.5 shrink-0" />
-                    )}
-                    <div className="leading-tight">
-                      <div className={`text-sm font-semibold ${t.done ? "text-text" : "text-text/60"}`}>{t.title}</div>
-                      {t.done && t.doneAt && (
-                        <div className="text-[10px] text-emerald-600 font-medium">
-                          {dayjs(t.doneAt).format("DD MMM, h:mm a")}
-                          {t.doneBy === "user" ? " · Staff" : " · Admin"}
+          <div className="flex flex-col items-start gap-1">
+            {groups.map(({ key, label, tasks }) => {
+              const doneCount = tasks.filter((t) => t.done).length;
+              const allDone = doneCount === tasks.length;
+              return (
+                <Popover
+                  key={key}
+                  title={`${label} Tasks`}
+                  content={
+                    <div className="space-y-2 min-w-[220px]">
+                      {tasks.map((t, i) => (
+                        <div
+                          key={t.taskId || i}
+                          className="flex items-start gap-2"
+                        >
+                          {t.done ? (
+                            <CheckCircle2
+                              size={15}
+                              className="text-emerald-600 mt-0.5 shrink-0"
+                            />
+                          ) : (
+                            <Circle
+                              size={15}
+                              className="text-text/30 mt-0.5 shrink-0"
+                            />
+                          )}
+                          <div className="leading-tight">
+                            <div
+                              className={`text-sm font-semibold ${t.done ? "text-text" : "text-text/60"}`}
+                            >
+                              {t.title}
+                            </div>
+                            {t.done && t.doneAt && (
+                              <div className="text-[10px] text-emerald-600 font-medium">
+                                {dayjs(t.doneAt).format("DD MMM, h:mm a")}
+                                {t.doneBy === "user" ? " · Staff" : " · Admin"}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
+                      ))}
                     </div>
-                  </div>
-                ))}
-              </div>
-            }
-          >
-            <span
-              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg border cursor-pointer ${
-                allDone
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                  : "bg-amber-50 text-amber-600 border-amber-200"
-              }`}
-            >
-              <ListChecks size={13} />
-              {doneCount}/{tasks.length}
-            </span>
-          </Popover>
+                  }
+                >
+                  <span
+                    className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg border cursor-pointer ${
+                      allDone
+                        ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                        : "bg-amber-50 text-amber-600 border-amber-200"
+                    }`}
+                  >
+                    <ListChecks size={13} />
+                    {label} {doneCount}/{tasks.length}
+                  </span>
+                </Popover>
+              );
+            })}
+          </div>
         );
       },
     },
@@ -355,11 +480,20 @@ export default function Attendance() {
               handleOpenEdit(record);
               editForm.setFieldsValue({
                 shiftName: record.shiftName || "Morning",
-                checkIn: record.checkIn ? dayjs(record.checkIn, "h:mm a") : null,
-                checkOut: record.checkOut ? dayjs(record.checkOut, "h:mm a") : null,
+                checkIn: record.checkIn
+                  ? dayjs(record.checkIn, "h:mm a")
+                  : null,
+                checkOut: record.checkOut
+                  ? dayjs(record.checkOut, "h:mm a")
+                  : null,
                 lateMinutes: record.lateMinutes ?? 0,
                 status: record.status,
-                dailyTasks: record.dailyTasks || [],
+                openingTasks: (record.dailyTasks || []).filter(
+                  (t) => t.type !== "closing",
+                ),
+                closingTasks: (record.dailyTasks || []).filter(
+                  (t) => t.type === "closing",
+                ),
               });
             }}
             className="text-primary hover:text-primary/70 transition-colors cursor-pointer"
@@ -376,12 +510,18 @@ export default function Attendance() {
       {/* Header */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>
-          <h1 className="text-text text-2xl font-bold">Attendance Matrix & Shifts</h1>
+          <h1 className="text-text text-2xl font-bold">
+            Attendance Matrix & Shifts
+          </h1>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-text/60 font-semibold">
-              روته شهر {ARABIC_MONTHS[selectedMonth.month()]} {selectedMonth.year()}
+              روته شهر {ARABIC_MONTHS[selectedMonth.month()]}{" "}
+              {selectedMonth.year()}
             </span>
-            <Tag color="primary" className="m-0 font-bold text-[10px] px-2 py-0.5 leading-none rounded-md">
+            <Tag
+              color="primary"
+              className="m-0 font-bold text-[10px] px-2 py-0.5 leading-none rounded-md"
+            >
               {displayStaffList.length} Staff
             </Tag>
           </div>
@@ -402,9 +542,30 @@ export default function Attendance() {
             <>
               <Segmented
                 options={[
-                  { label: <span className="flex items-center gap-1.5"><LayoutGrid size={14} /> Matrix Grid</span>, value: "matrix" },
-                  { label: <span className="flex items-center gap-1.5"><CalendarDays size={14} /> Week View</span>, value: "week" },
-                  { label: <span className="flex items-center gap-1.5"><List size={14} /> Table View</span>, value: "table" },
+                  {
+                    label: (
+                      <span className="flex items-center gap-1.5">
+                        <LayoutGrid size={14} /> Matrix Grid
+                      </span>
+                    ),
+                    value: "matrix",
+                  },
+                  {
+                    label: (
+                      <span className="flex items-center gap-1.5">
+                        <CalendarDays size={14} /> Week View
+                      </span>
+                    ),
+                    value: "week",
+                  },
+                  {
+                    label: (
+                      <span className="flex items-center gap-1.5">
+                        <List size={14} /> Table View
+                      </span>
+                    ),
+                    value: "table",
+                  },
                 ]}
                 value={viewMode}
                 onChange={setViewMode}
@@ -490,7 +651,9 @@ export default function Attendance() {
                   className="w-full sm:w-40 h-10 rounded-xl"
                 >
                   {departments.map((d) => (
-                    <Option key={d} value={d}>{d}</Option>
+                    <Option key={d} value={d}>
+                      {d}
+                    </Option>
                   ))}
                 </Select>
 
@@ -502,7 +665,9 @@ export default function Attendance() {
                   className="w-full sm:w-36 h-10 rounded-xl"
                 >
                   {roles.map((r) => (
-                    <Option key={r} value={r}>{r}</Option>
+                    <Option key={r} value={r}>
+                      {r}
+                    </Option>
                   ))}
                 </Select>
 
@@ -596,7 +761,9 @@ export default function Attendance() {
                     <DatePicker
                       picker="week"
                       value={currentWeekStart}
-                      onChange={(d) => d && setCurrentWeekStart(d.startOf("isoWeek"))}
+                      onChange={(d) =>
+                        d && setCurrentWeekStart(d.startOf("isoWeek"))
+                      }
                       allowClear={false}
                       format="[Week of] DD MMM YYYY"
                       className="h-10 rounded-xl w-52 font-semibold"
@@ -616,13 +783,17 @@ export default function Attendance() {
                     className="w-full sm:w-56 h-10 rounded-xl font-semibold text-text"
                   >
                     {staffList.map((s) => (
-                      <Option key={s.id} value={s.id}>{s.name} ({s.role})</Option>
+                      <Option key={s.id} value={s.id}>
+                        {s.name} ({s.role})
+                      </Option>
                     ))}
                   </Select>
 
                   <div className="w-full sm:w-60 relative">
                     <Input
-                      prefix={<Search size={15} className="text-text/30 mr-1" />}
+                      prefix={
+                        <Search size={15} className="text-text/30 mr-1" />
+                      }
                       placeholder="Search staff by name..."
                       value={searchText}
                       onChange={(e) => setSearchText(e.target.value)}
@@ -651,7 +822,9 @@ export default function Attendance() {
                     className="w-full sm:w-36 h-10 rounded-xl"
                   >
                     {roles.map((r) => (
-                      <Option key={r} value={r}>{r}</Option>
+                      <Option key={r} value={r}>
+                        {r}
+                      </Option>
                     ))}
                   </Select>
 
@@ -757,14 +930,26 @@ export default function Attendance() {
                   </div>
 
                   <DatePicker
-                    picker={period === "day" ? "date" : period === "week" ? "week" : "month"}
+                    picker={
+                      period === "day"
+                        ? "date"
+                        : period === "week"
+                          ? "week"
+                          : "month"
+                    }
                     value={selectedDate}
                     onChange={(d) => {
                       setSelectedDate(d || dayjs());
                       setPage(1);
                     }}
                     allowClear={false}
-                    format={period === "day" ? "DD MMMM YYYY" : period === "week" ? "[Week of] DD MMM" : "MMMM YYYY"}
+                    format={
+                      period === "day"
+                        ? "DD MMMM YYYY"
+                        : period === "week"
+                          ? "[Week of] DD MMM"
+                          : "MMMM YYYY"
+                    }
                     className="h-10 rounded-xl w-full sm:w-48 font-semibold text-text"
                     inputReadOnly
                   />
@@ -780,13 +965,17 @@ export default function Attendance() {
                     className="w-full sm:w-56 h-10 rounded-xl font-semibold text-text"
                   >
                     {staffList.map((s) => (
-                      <Option key={s.id} value={s.id}>{s.name} ({s.role})</Option>
+                      <Option key={s.id} value={s.id}>
+                        {s.name} ({s.role})
+                      </Option>
                     ))}
                   </Select>
 
                   <div className="w-full sm:w-64 relative">
                     <Input
-                      prefix={<Search size={15} className="text-text/30 mr-1" />}
+                      prefix={
+                        <Search size={15} className="text-text/30 mr-1" />
+                      }
                       placeholder="Search staff by name..."
                       value={searchText}
                       onChange={(e) => {
@@ -809,7 +998,9 @@ export default function Attendance() {
                     className="w-full sm:w-40 h-10 rounded-xl"
                   >
                     {departments.map((d) => (
-                      <Option key={d} value={d}>{d}</Option>
+                      <Option key={d} value={d}>
+                        {d}
+                      </Option>
                     ))}
                   </Select>
 
@@ -824,7 +1015,9 @@ export default function Attendance() {
                     className="w-full sm:w-36 h-10 rounded-xl"
                   >
                     {roles.map((r) => (
-                      <Option key={r} value={r}>{r}</Option>
+                      <Option key={r} value={r}>
+                        {r}
+                      </Option>
                     ))}
                   </Select>
 
@@ -870,8 +1063,12 @@ export default function Attendance() {
                   locale={{
                     emptyText: (
                       <div className="py-12 text-center">
-                        <p className="text-text/50 text-sm font-semibold">No attendance logs found</p>
-                        <p className="text-text/30 text-xs mt-1">Try adjusting your filters or date picker selection</p>
+                        <p className="text-text/50 text-sm font-semibold">
+                          No attendance logs found
+                        </p>
+                        <p className="text-text/30 text-xs mt-1">
+                          Try adjusting your filters or date picker selection
+                        </p>
                       </div>
                     ),
                   }}
@@ -884,9 +1081,12 @@ export default function Attendance() {
                     <p className="text-xs text-text/50 font-semibold">
                       Showing{" "}
                       <span className="font-bold text-text">
-                        {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)}
+                        {(page - 1) * pageSize + 1}–
+                        {Math.min(page * pageSize, totalCount)}
                       </span>{" "}
-                      of <span className="font-bold text-text">{totalCount}</span> logs
+                      of{" "}
+                      <span className="font-bold text-text">{totalCount}</span>{" "}
+                      logs
                     </p>
                     <div className="flex gap-1.5">
                       <Button
@@ -938,7 +1138,9 @@ export default function Attendance() {
               className="w-full sm:w-40 h-10 rounded-xl"
             >
               {departments.map((d) => (
-                <Option key={d} value={d}>{d}</Option>
+                <Option key={d} value={d}>
+                  {d}
+                </Option>
               ))}
             </Select>
 
@@ -992,11 +1194,20 @@ export default function Attendance() {
           <Form.Item
             name="staffId"
             label="Staff Member"
-            rules={[{ required: true, message: "Please select a staff member!" }]}
+            rules={[
+              { required: true, message: "Please select a staff member!" },
+            ]}
           >
-            <Select showSearch placeholder="Select a staff member" optionFilterProp="children" className="h-11 rounded-xl">
+            <Select
+              showSearch
+              placeholder="Select a staff member"
+              optionFilterProp="children"
+              className="h-11 rounded-xl"
+            >
               {staffList.map((s) => (
-                <Option key={s.id} value={s.id}>{s.name} ({s.role})</Option>
+                <Option key={s.id} value={s.id}>
+                  {s.name} ({s.role})
+                </Option>
               ))}
             </Select>
           </Form.Item>
@@ -1007,7 +1218,11 @@ export default function Attendance() {
               label="Log Date"
               rules={[{ required: true, message: "Please select date!" }]}
             >
-              <DatePicker className="w-full h-11 rounded-xl" format="YYYY-MM-DD" inputReadOnly />
+              <DatePicker
+                className="w-full h-11 rounded-xl"
+                format="YYYY-MM-DD"
+                inputReadOnly
+              />
             </Form.Item>
 
             <Form.Item
@@ -1017,7 +1232,9 @@ export default function Attendance() {
             >
               <Select className="h-11 rounded-xl">
                 {shifts.map((s) => (
-                  <Option key={s.name} value={s.name}>{s.name} ({s.start} - {s.end})</Option>
+                  <Option key={s.name} value={s.name}>
+                    {s.name} ({s.start} - {s.end})
+                  </Option>
                 ))}
               </Select>
             </Form.Item>
@@ -1025,11 +1242,23 @@ export default function Attendance() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Form.Item name="checkIn" label="Check In Time">
-              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
+              <TimePicker
+                format="h:mm a"
+                use12Hours
+                className="w-full h-11 rounded-xl"
+                placeholder="hh:mm am/pm"
+                inputReadOnly
+              />
             </Form.Item>
 
             <Form.Item name="checkOut" label="Check Out Time">
-              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
+              <TimePicker
+                format="h:mm a"
+                use12Hours
+                className="w-full h-11 rounded-xl"
+                placeholder="hh:mm am/pm"
+                inputReadOnly
+              />
             </Form.Item>
           </div>
 
@@ -1048,10 +1277,24 @@ export default function Attendance() {
             </Form.Item>
 
             <Form.Item name="lateMinutes" label="Late Minutes">
-              <Input type="number" min={0} className="h-11 rounded-xl font-semibold" placeholder="0" />
+              <Input
+                type="number"
+                min={0}
+                className="h-11 rounded-xl font-semibold"
+                placeholder="0"
+              />
             </Form.Item>
           </div>
-          <DailyTasksField tasks={taskOptions} />
+          <DailyTasksField
+            name="openingTasks"
+            label="Opening Tasks"
+            tasks={taskOptions}
+          />
+          <DailyTasksField
+            name="closingTasks"
+            label="Closing Tasks"
+            tasks={taskOptions}
+          />
         </Form>
       </Modal>
 
@@ -1079,14 +1322,24 @@ export default function Attendance() {
             handleConfirmEdit({
               ...values,
               // recalculate lateness on the backend unless the admin edited it
-              lateMinutes: editForm.isFieldTouched("lateMinutes") ? values.lateMinutes : undefined,
+              lateMinutes: editForm.isFieldTouched("lateMinutes")
+                ? values.lateMinutes
+                : undefined,
             })
           }
           className="py-4 space-y-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Form.Item label="Date">
-              <Input disabled value={editingRecord ? dayjs(editingRecord.date).format("DD MMM YYYY") : ""} className="h-11 rounded-xl" />
+              <Input
+                disabled
+                value={
+                  editingRecord
+                    ? dayjs(editingRecord.date).format("DD MMM YYYY")
+                    : ""
+                }
+                className="h-11 rounded-xl"
+              />
             </Form.Item>
 
             <Form.Item
@@ -1096,7 +1349,9 @@ export default function Attendance() {
             >
               <Select className="h-11 rounded-xl">
                 {shifts.map((s) => (
-                  <Option key={s.name} value={s.name}>{s.name} ({s.start} - {s.end})</Option>
+                  <Option key={s.name} value={s.name}>
+                    {s.name} ({s.start} - {s.end})
+                  </Option>
                 ))}
               </Select>
             </Form.Item>
@@ -1104,11 +1359,23 @@ export default function Attendance() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Form.Item name="checkIn" label="Check In Time">
-              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
+              <TimePicker
+                format="h:mm a"
+                use12Hours
+                className="w-full h-11 rounded-xl"
+                placeholder="hh:mm am/pm"
+                inputReadOnly
+              />
             </Form.Item>
 
             <Form.Item name="checkOut" label="Check Out Time">
-              <TimePicker format="h:mm a" use12Hours className="w-full h-11 rounded-xl" placeholder="hh:mm am/pm" inputReadOnly />
+              <TimePicker
+                format="h:mm a"
+                use12Hours
+                className="w-full h-11 rounded-xl"
+                placeholder="hh:mm am/pm"
+                inputReadOnly
+              />
             </Form.Item>
           </div>
 
@@ -1128,7 +1395,12 @@ export default function Attendance() {
 
             <Form.Item name="lateMinutes" label="Late Minutes">
               <Space.Compact className="w-full">
-                <Input type="number" min={0} className="h-11 rounded-xl font-semibold" placeholder="0" />
+                <Input
+                  type="number"
+                  min={0}
+                  className="h-11 rounded-xl font-semibold"
+                  placeholder="0"
+                />
                 <Button
                   className="h-11 rounded-r-xl font-semibold"
                   onClick={() => editForm.setFieldValue("lateMinutes", 0)}
@@ -1138,7 +1410,16 @@ export default function Attendance() {
               </Space.Compact>
             </Form.Item>
           </div>
-          <DailyTasksField tasks={taskOptions} />
+          <DailyTasksField
+            name="openingTasks"
+            label="Opening Tasks"
+            tasks={taskOptions}
+          />
+          <DailyTasksField
+            name="closingTasks"
+            label="Closing Tasks"
+            tasks={taskOptions}
+          />
         </Form>
       </Modal>
 
@@ -1150,72 +1431,80 @@ export default function Attendance() {
         staffMembers={staffList}
         preSelectedDay={preSelectedShiftDay}
         preSelectedStaffId={preSelectedShiftStaffId}
-        allDayNumbers={Array.from({ length: selectedMonth.daysInMonth() }, (_, i) => i + 1)}
+        allDayNumbers={Array.from(
+          { length: selectedMonth.daysInMonth() },
+          (_, i) => i + 1,
+        )}
         selectedMonth={selectedMonth}
       />
     </div>
   );
 }
 
-function DailyTasksField({ tasks = [] }) {
+function DailyTasksField({ name: listName, label, tasks = [] }) {
   return (
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="font-semibold text-text">
-            Daily Tasks <span className="text-xs font-normal text-gray-400">(optional)</span>
-          </span>
-        </div>
-        <Form.List name="dailyTasks">
-          {(fields, { add, remove }) => (
-            <div className="space-y-2">
-              {fields.map(({ key, name }) => (
-                <div key={key} className="flex items-center gap-2">
-                  <Form.Item name={[name, "done"]} valuePropName="checked" noStyle>
-                    <Checkbox />
-                  </Form.Item>
-                  <Form.Item name={[name, "taskId"]} noStyle>
-                    <Select
-                      showSearch
-                      placeholder="Select a task"
-                      optionFilterProp="label"
-                      className="h-10 flex-1"
-                      options={tasks
-                        .filter((t) => Number(t.is_active ?? 1) === 1)
-                        .map((t) => ({ value: t.id, label: t.title }))}
-                    />
-                  </Form.Item>
-                  <Form.Item noStyle shouldUpdate>
-                    {({ getFieldValue }) => {
-                      const task = getFieldValue(["dailyTasks", name]) || {};
-                      return task.done && task.doneAt ? (
-                        <span className="text-[10px] text-emerald-600 font-semibold whitespace-nowrap">
-                          {dayjs(task.doneAt).format("DD MMM, h:mm a")}
-                          {task.doneBy === "user" ? " · Staff" : " · Admin"}
-                        </span>
-                      ) : null;
-                    }}
-                  </Form.Item>
-                  <button
-                    type="button"
-                    onClick={() => remove(name)}
-                    className="text-red-500 hover:text-red-400 cursor-pointer"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-              <Button
-                type="dashed"
-                block
-                icon={<Plus size={14} />}
-                onClick={() => add({ taskId: undefined, done: false })}
-                className="rounded-xl"
-              >
-                Add Task
-              </Button>
-            </div>
-          )}
-        </Form.List>
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-semibold text-text">
+          {label}{" "}
+          <span className="text-xs font-normal text-gray-400">(optional)</span>
+        </span>
       </div>
+      <Form.List name={listName}>
+        {(fields, { add, remove }) => (
+          <div className="space-y-2">
+            {fields.map(({ key, name }) => (
+              <div key={key} className="flex items-center gap-2">
+                <Form.Item
+                  name={[name, "done"]}
+                  valuePropName="checked"
+                  noStyle
+                >
+                  <Checkbox />
+                </Form.Item>
+                <Form.Item name={[name, "taskId"]} noStyle>
+                  <Select
+                    showSearch
+                    placeholder="Select a task"
+                    optionFilterProp="label"
+                    className="h-10 flex-1"
+                    options={tasks
+                      .filter((t) => Number(t.is_active ?? 1) === 1)
+                      .map((t) => ({ value: t.id, label: t.title }))}
+                  />
+                </Form.Item>
+                <Form.Item noStyle shouldUpdate>
+                  {({ getFieldValue }) => {
+                    const task = getFieldValue([listName, name]) || {};
+                    return task.done && task.doneAt ? (
+                      <span className="text-[10px] text-emerald-600 font-semibold whitespace-nowrap">
+                        {dayjs(task.doneAt).format("DD MMM, h:mm a")}
+                        {task.doneBy === "user" ? " · Staff" : " · Admin"}
+                      </span>
+                    ) : null;
+                  }}
+                </Form.Item>
+                <button
+                  type="button"
+                  onClick={() => remove(name)}
+                  className="text-red-500 hover:text-red-400 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+            <Button
+              type="dashed"
+              block
+              icon={<Plus size={14} />}
+              onClick={() => add({ taskId: undefined, done: false })}
+              className="rounded-xl"
+            >
+              Add Task
+            </Button>
+          </div>
+        )}
+      </Form.List>
+    </div>
   );
 }

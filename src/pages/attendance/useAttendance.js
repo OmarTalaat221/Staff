@@ -111,6 +111,7 @@ export default function useAttendance() {
     if (!Array.isArray(list)) return [];
     return list.map((t) => ({
       taskId: t.task_id ?? t.id,
+      type: t.type === "closing" ? "closing" : "opening",
       title: t.title || "",
       done: Number(t.is_done ?? t.done) === 1 || t.done === true,
       doneAt: t.done_at || null,
@@ -422,9 +423,12 @@ export default function useAttendance() {
         check_out_time: toFullDateTime(values.checkOut),
         // left out unless entered manually, so the backend calculates it from the shift start
         late_arrival_minutes: values.lateMinutes === "" || values.lateMinutes == null ? undefined : Number(values.lateMinutes),
-        daily_tasks: (values.dailyTasks || [])
+        daily_tasks: [
+          ...(values.openingTasks || []).map((t) => ({ ...t, type: "opening" })),
+          ...(values.closingTasks || []).map((t) => ({ ...t, type: "closing" })),
+        ]
           .filter((t) => t?.taskId)
-          .map((t) => ({ task_id: t.taskId, is_done: t.done ? 1 : 0 })),
+          .map((t) => ({ task_id: t.taskId, type: t.type, is_done: t.done ? 1 : 0 })),
       });
       if (res?.status === "success") {
         toast.success("Attendance log created successfully!");
@@ -462,9 +466,12 @@ export default function useAttendance() {
         check_in_time: toFullDateTime(values.checkIn),
         check_out_time: toFullDateTime(values.checkOut),
         late_arrival_minutes: values.lateMinutes === "" || values.lateMinutes == null ? undefined : Number(values.lateMinutes),
-        daily_tasks: (values.dailyTasks || [])
+        daily_tasks: [
+          ...(values.openingTasks || []).map((t) => ({ ...t, type: "opening" })),
+          ...(values.closingTasks || []).map((t) => ({ ...t, type: "closing" })),
+        ]
           .filter((t) => t?.taskId)
-          .map((t) => ({ task_id: t.taskId, is_done: t.done ? 1 : 0 })),
+          .map((t) => ({ task_id: t.taskId, type: t.type, is_done: t.done ? 1 : 0 })),
       };
 
       const res = await updateAttendanceLog(payload);
