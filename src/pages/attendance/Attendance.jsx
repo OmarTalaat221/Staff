@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Modal, Form, Select, DatePicker, TimePicker, Input, Space, Popconfirm, Checkbox, Tooltip, Segmented, Tag } from "antd";
-import { Plus, Edit2, Trash2, Search, Calendar, User, Clock, CheckCircle2, XCircle, ArrowUpRight, ShieldAlert, Timer, Play, Power, X, UserCheck, ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, List } from "lucide-react";
+import { Table, Button, Modal, Form, Select, DatePicker, TimePicker, Input, Space, Popconfirm, Checkbox, Popover, Tooltip, Segmented, Tag } from "antd";
+import { Plus, Edit2, Trash2, Search, Calendar, User, Clock, CheckCircle2, XCircle, ArrowUpRight, ShieldAlert, Timer, Play, Power, X, UserCheck, ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, List, ListChecks, Circle } from "lucide-react";
 import dayjs from "dayjs";
 import useAttendance from "./useAttendance";
 import { getTasks } from "../../features/Tasks/taskService";
@@ -283,6 +283,55 @@ export default function Attendance() {
               </div>
             )}
           </div>
+        );
+      },
+    },
+    {
+      title: "Tasks",
+      dataIndex: "dailyTasks",
+      key: "tasks",
+      width: 100,
+      render: (tasks = []) => {
+        if (!tasks.length) return <span className="text-sm font-bold text-text/30">—</span>;
+        const doneCount = tasks.filter((t) => t.done).length;
+        const allDone = doneCount === tasks.length;
+        return (
+          <Popover
+            title="Daily Tasks"
+            content={
+              <div className="space-y-2 min-w-[220px]">
+                {tasks.map((t, i) => (
+                  <div key={t.taskId || i} className="flex items-start gap-2">
+                    {t.done ? (
+                      <CheckCircle2 size={15} className="text-emerald-600 mt-0.5 shrink-0" />
+                    ) : (
+                      <Circle size={15} className="text-text/30 mt-0.5 shrink-0" />
+                    )}
+                    <div className="leading-tight">
+                      <div className={`text-sm font-semibold ${t.done ? "text-text" : "text-text/60"}`}>{t.title}</div>
+                      {t.done && t.doneAt && (
+                        <div className="text-[10px] text-emerald-600 font-medium">
+                          {dayjs(t.doneAt).format("DD MMM, h:mm a")}
+                          {t.doneBy === "user" ? " · Staff" : " · Admin"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            }
+          >
+            <span
+              className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg border cursor-pointer ${
+                allDone
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+                  : "bg-amber-50 text-amber-600 border-amber-200"
+              }`}
+            >
+              <ListChecks size={13} />
+              {doneCount}/{tasks.length}
+            </span>
+          </Popover>
         );
       },
     },
