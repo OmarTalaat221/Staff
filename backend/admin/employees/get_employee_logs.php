@@ -40,18 +40,32 @@ $sql = mysqli_query($con, $query);
 
 if ($sql) {
     while ($row = mysqli_fetch_assoc($sql)) {
-        $row['daily_tasks'] = array();
-        if ($row['attendance_id']) {
+        // Task lists assigned to the employee, with what was checked in this shift
+        $row['daily_tasks'] = array("opening" => array(), "closing" => array());
+        try {
+            $lists = array();
             $tasksQuery = mysqli_query($con, "
-                SELECT at.id, at.task_id, at.type, t.title, t.description, at.is_done, at.done_at, at.done_by
-                FROM attendance_tasks at
-                JOIN daily_tasks t ON t.id = at.task_id
-                WHERE at.attendance_id = '{$row['attendance_id']}'
-                ORDER BY at.id ASC
+                SELECT l.id AS list_id, l.title AS list_title, l.type, i.id AS item_id, i.title, c.done_at, c.checked_by, ce.full_name AS checked_by_name
+                FROM task_list_employees le
+                JOIN task_lists l ON l.id = le.list_id AND l.is_active = 1
+                JOIN task_list_items i ON i.list_id = l.id
+                LEFT JOIN attendance_task_checks c ON c.item_id = i.id AND c.attendance_id = '{$row['attendance_id']}'
+                LEFT JOIN employees ce ON ce.employee_id = c.checked_by
+                WHERE le.employee_id = '$employee_id'
+                ORDER BY l.id ASC, i.sort_order ASC, i.id ASC
             ");
             while ($tasksQuery && $taskRow = mysqli_fetch_assoc($tasksQuery)) {
-                $row['daily_tasks'][] = $taskRow;
+                if (!isset($lists[$taskRow['list_id']])) {
+                    $lists[$taskRow['list_id']] = array("list_id" => $taskRow['list_id'], "title" => $taskRow['list_title'], "type" => $taskRow['type'], "items" => array());
+                }
+                $lists[$taskRow['list_id']]['items'][] = array("item_id" => $taskRow['item_id'], "title" => $taskRow['title'], "is_done" => $taskRow['done_at'] ? 1 : 0, "done_at" => $taskRow['done_at'], "checked_by" => $taskRow['checked_by'], "checked_by_name" => $taskRow['checked_by_name']);
             }
+            foreach ($lists as $list) {
+                $row['daily_tasks'][$list['type']][] = $list;
+            }
+        } catch (Exception $e) {
+            // keep returning the logs without tasks, but report why
+            $response->tasks_error = $e->getMessage();
         }
         $logs[] = $row;
     }

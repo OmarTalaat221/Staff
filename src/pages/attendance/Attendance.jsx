@@ -43,7 +43,6 @@ import {
 } from "lucide-react";
 import dayjs from "dayjs";
 import useAttendance from "./useAttendance";
-import { getTasks } from "../../features/Tasks/taskService";
 import useAttendanceStats from "./useAttendanceStats";
 import AttendanceStatsTable from "./components/AttendanceStatsTable";
 import AttendanceWeekView from "./components/AttendanceWeekView";
@@ -229,16 +228,6 @@ export default function Attendance() {
 
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
-  const [taskOptions, setTaskOptions] = useState([]);
-
-  useEffect(() => {
-    getTasks()
-      .then((res) => {
-        if (res?.status === "success") setTaskOptions(res.data || []);
-      })
-      .catch((e) => console.error("Failed to load tasks", e));
-  }, []);
-
   const openEditLog = (record) => {
     handleOpenEdit(record);
     editForm.setFieldsValue({
@@ -247,12 +236,6 @@ export default function Attendance() {
       checkOut: record.checkOut ? dayjs(record.checkOut, "h:mm a") : null,
       lateMinutes: record.lateMinutes ?? 0,
       status: record.status,
-      openingTasks: (record.dailyTasks || []).filter(
-        (t) => t.type !== "closing",
-      ),
-      closingTasks: (record.dailyTasks || []).filter(
-        (t) => t.type === "closing",
-      ),
     });
   };
 
@@ -383,8 +366,8 @@ export default function Attendance() {
       dataIndex: "dailyTasks",
       key: "tasks",
       width: 130,
-      render: (allTasks = []) => {
-        if (!allTasks.length)
+      render: (allTasks = [], record) => {
+        if (!record.attendanceId || !allTasks.length)
           return <span className="text-sm font-bold text-text/30">—</span>;
         const groups = [
           {
@@ -411,7 +394,7 @@ export default function Attendance() {
                     <div className="space-y-2 min-w-[220px]">
                       {tasks.map((t, i) => (
                         <div
-                          key={t.taskId || i}
+                          key={t.itemId || i}
                           className="flex items-start gap-2"
                         >
                           {t.done ? (
@@ -431,10 +414,11 @@ export default function Attendance() {
                             >
                               {t.title}
                             </div>
+                            <div className="text-[10px] text-text/40">{t.listTitle}</div>
                             {t.done && t.doneAt && (
                               <div className="text-[10px] text-emerald-600 font-medium">
                                 {dayjs(t.doneAt).format("DD MMM, h:mm a")}
-                                {t.doneBy === "user" ? " · Staff" : " · Admin"}
+                                {t.checkedByName ? ` · ${t.checkedByName}` : ""}
                               </div>
                             )}
                           </div>
@@ -488,12 +472,6 @@ export default function Attendance() {
                   : null,
                 lateMinutes: record.lateMinutes ?? 0,
                 status: record.status,
-                openingTasks: (record.dailyTasks || []).filter(
-                  (t) => t.type !== "closing",
-                ),
-                closingTasks: (record.dailyTasks || []).filter(
-                  (t) => t.type === "closing",
-                ),
               });
             }}
             className="text-primary hover:text-primary/70 transition-colors cursor-pointer"
@@ -693,7 +671,6 @@ export default function Attendance() {
                 onOpenAdd={handleOpenAddShift}
                 onOpenEdit={handleOpenEditShift}
                 onDeleteShift={handleDeleteShift}
-                onOpenTasks={openEditLog}
                 onQuickAddStaff={() => handleOpenAddShift(1)}
                 loading={loading}
               />
@@ -1285,16 +1262,6 @@ export default function Attendance() {
               />
             </Form.Item>
           </div>
-          <DailyTasksField
-            name="openingTasks"
-            label="Opening Tasks"
-            tasks={taskOptions}
-          />
-          <DailyTasksField
-            name="closingTasks"
-            label="Closing Tasks"
-            tasks={taskOptions}
-          />
         </Form>
       </Modal>
 
@@ -1410,16 +1377,6 @@ export default function Attendance() {
               </Space.Compact>
             </Form.Item>
           </div>
-          <DailyTasksField
-            name="openingTasks"
-            label="Opening Tasks"
-            tasks={taskOptions}
-          />
-          <DailyTasksField
-            name="closingTasks"
-            label="Closing Tasks"
-            tasks={taskOptions}
-          />
         </Form>
       </Modal>
 
@@ -1441,70 +1398,3 @@ export default function Attendance() {
   );
 }
 
-function DailyTasksField({ name: listName, label, tasks = [] }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-semibold text-text">
-          {label}{" "}
-          <span className="text-xs font-normal text-gray-400">(optional)</span>
-        </span>
-      </div>
-      <Form.List name={listName}>
-        {(fields, { add, remove }) => (
-          <div className="space-y-2">
-            {fields.map(({ key, name }) => (
-              <div key={key} className="flex items-center gap-2">
-                <Form.Item
-                  name={[name, "done"]}
-                  valuePropName="checked"
-                  noStyle
-                >
-                  <Checkbox />
-                </Form.Item>
-                <Form.Item name={[name, "taskId"]} noStyle>
-                  <Select
-                    showSearch
-                    placeholder="Select a task"
-                    optionFilterProp="label"
-                    className="h-10 flex-1"
-                    options={tasks
-                      .filter((t) => Number(t.is_active ?? 1) === 1)
-                      .map((t) => ({ value: t.id, label: t.title }))}
-                  />
-                </Form.Item>
-                <Form.Item noStyle shouldUpdate>
-                  {({ getFieldValue }) => {
-                    const task = getFieldValue([listName, name]) || {};
-                    return task.done && task.doneAt ? (
-                      <span className="text-[10px] text-emerald-600 font-semibold whitespace-nowrap">
-                        {dayjs(task.doneAt).format("DD MMM, h:mm a")}
-                        {task.doneBy === "user" ? " · Staff" : " · Admin"}
-                      </span>
-                    ) : null;
-                  }}
-                </Form.Item>
-                <button
-                  type="button"
-                  onClick={() => remove(name)}
-                  className="text-red-500 hover:text-red-400 cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
-            <Button
-              type="dashed"
-              block
-              icon={<Plus size={14} />}
-              onClick={() => add({ taskId: undefined, done: false })}
-              className="rounded-xl"
-            >
-              Add Task
-            </Button>
-          </div>
-        )}
-      </Form.List>
-    </div>
-  );
-}

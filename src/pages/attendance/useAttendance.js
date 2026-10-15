@@ -102,21 +102,22 @@ export default function useAttendance() {
     return staffList.find(s => String(s.id) === String(selectedStaffId)) || null;
   }, [staffList, selectedStaffId]);
 
-  // daily_tasks may come back as an array or a JSON string
+  // daily_tasks comes back as { opening: [lists], closing: [lists] }; flatten to items
   const parseDailyTasks = (raw) => {
-    let list = raw;
-    if (typeof raw === "string") {
-      try { list = JSON.parse(raw); } catch { list = []; }
-    }
-    if (!Array.isArray(list)) return [];
-    return list.map((t) => ({
-      taskId: t.task_id ?? t.id,
-      type: t.type === "closing" ? "closing" : "opening",
-      title: t.title || "",
-      done: Number(t.is_done ?? t.done) === 1 || t.done === true,
-      doneAt: t.done_at || null,
-      doneBy: t.done_by || null,
-    }));
+    if (!raw || typeof raw !== "object") return [];
+    return ["opening", "closing"].flatMap((type) =>
+      (raw[type] || []).flatMap((list) =>
+        (list.items || []).map((item) => ({
+          itemId: item.item_id,
+          type,
+          listTitle: list.title,
+          title: item.title || "",
+          done: Number(item.is_done) === 1,
+          doneAt: item.done_at || null,
+          checkedByName: item.checked_by_name || null,
+        }))
+      )
+    );
   };
 
   const enrichLogs = useCallback((items, staffMember) => {
@@ -423,12 +424,6 @@ export default function useAttendance() {
         check_out_time: toFullDateTime(values.checkOut),
         // left out unless entered manually, so the backend calculates it from the shift start
         late_arrival_minutes: values.lateMinutes === "" || values.lateMinutes == null ? undefined : Number(values.lateMinutes),
-        daily_tasks: [
-          ...(values.openingTasks || []).map((t) => ({ ...t, type: "opening" })),
-          ...(values.closingTasks || []).map((t) => ({ ...t, type: "closing" })),
-        ]
-          .filter((t) => t?.taskId)
-          .map((t) => ({ task_id: t.taskId, type: t.type, is_done: t.done ? 1 : 0 })),
       });
       if (res?.status === "success") {
         toast.success("Attendance log created successfully!");
@@ -466,12 +461,6 @@ export default function useAttendance() {
         check_in_time: toFullDateTime(values.checkIn),
         check_out_time: toFullDateTime(values.checkOut),
         late_arrival_minutes: values.lateMinutes === "" || values.lateMinutes == null ? undefined : Number(values.lateMinutes),
-        daily_tasks: [
-          ...(values.openingTasks || []).map((t) => ({ ...t, type: "opening" })),
-          ...(values.closingTasks || []).map((t) => ({ ...t, type: "closing" })),
-        ]
-          .filter((t) => t?.taskId)
-          .map((t) => ({ task_id: t.taskId, type: t.type, is_done: t.done ? 1 : 0 })),
       };
 
       const res = await updateAttendanceLog(payload);

@@ -8,35 +8,35 @@ $attendance_id = (int)($obj['attendance_id'] ?? 0);
 
 $response = new stdClass();
 
-if ($employee_id && $attendance_id) {
-    // Make sure the attendance log belongs to this employee
-    $stmt = mysqli_prepare($con, "SELECT attendance_id FROM attendance WHERE attendance_id = ? AND employee_id = ? LIMIT 1");
-    mysqli_stmt_bind_param($stmt, "ii", $attendance_id, $employee_id);
-    mysqli_stmt_execute($stmt);
-    $owned = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-
-    if ($owned) {
-        $tasks = array("opening" => array(), "closing" => array());
-        $tasksQuery = mysqli_query($con, "
-            SELECT at.id, at.task_id, at.type, t.title, t.description, at.is_done, at.done_at, at.done_by
-            FROM attendance_tasks at
-            JOIN daily_tasks t ON t.id = at.task_id
-            WHERE at.attendance_id = '$attendance_id'
-            ORDER BY at.id ASC
-        ");
-        while ($tasksQuery && $taskRow = mysqli_fetch_assoc($tasksQuery)) {
-            $tasks[$taskRow['type']][] = $taskRow;
+if ($employee_id) {
+    // Lists assigned to the employee, with the items checked during this attendance
+    $daily_tasks = array("opening" => array(), "closing" => array());
+    $lists = array();
+    $tasksQuery = mysqli_query($con, "
+        SELECT l.id AS list_id, l.title AS list_title, l.type, i.id AS item_id, i.title, c.done_at, c.checked_by, ce.full_name AS checked_by_name
+        FROM task_list_employees le
+        JOIN task_lists l ON l.id = le.list_id AND l.is_active = 1
+        JOIN task_list_items i ON i.list_id = l.id
+        LEFT JOIN attendance_task_checks c ON c.item_id = i.id AND c.attendance_id = '$attendance_id'
+        LEFT JOIN employees ce ON ce.employee_id = c.checked_by
+        WHERE le.employee_id = '$employee_id'
+        ORDER BY l.id ASC, i.sort_order ASC, i.id ASC
+    ");
+    while ($tasksQuery && $row = mysqli_fetch_assoc($tasksQuery)) {
+        if (!isset($lists[$row['list_id']])) {
+            $lists[$row['list_id']] = array("list_id" => $row['list_id'], "title" => $row['list_title'], "type" => $row['type'], "items" => array());
         }
-
-        $response->status = "success";
-        $response->data = $tasks;
-    } else {
-        $response->status = "error";
-        $response->message = "Attendance log not found.";
+        $lists[$row['list_id']]['items'][] = array("item_id" => $row['item_id'], "title" => $row['title'], "is_done" => $row['done_at'] ? 1 : 0, "done_at" => $row['done_at'], "checked_by" => $row['checked_by'], "checked_by_name" => $row['checked_by_name']);
     }
+    foreach ($lists as $list) {
+        $daily_tasks[$list['type']][] = $list;
+    }
+
+    $response->status = "success";
+    $response->data = $daily_tasks;
 } else {
     $response->status = "error";
-    $response->message = "employee_id and attendance_id are required.";
+    $response->message = "employee_id is required.";
 }
 
 echo json_encode($response);

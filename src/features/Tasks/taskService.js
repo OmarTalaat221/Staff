@@ -1,35 +1,35 @@
 import apiInstance from "../../shared/services/api/apiInstance";
 
-export const getTasks = async () => {
+export const getTaskLists = async () => {
   try {
-    const response = await apiInstance.get("tasks/get_tasks.php");
+    const response = await apiInstance.get("tasks/get_lists.php");
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const addTask = async (data) => {
+export const addTaskList = async (data) => {
   try {
-    const response = await apiInstance.post("tasks/add_task.php", data);
+    const response = await apiInstance.post("tasks/add_list.php", data);
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const updateTask = async (data) => {
+export const updateTaskList = async (data) => {
   try {
-    const response = await apiInstance.post("tasks/update_task.php", data);
+    const response = await apiInstance.post("tasks/update_list.php", data);
     return response.data;
   } catch (error) {
     throw error;
   }
 };
 
-export const deleteTask = async (id) => {
+export const deleteTaskList = async (id) => {
   try {
-    const response = await apiInstance.post("tasks/delete_task.php", { id });
+    const response = await apiInstance.post("tasks/delete_list.php", { id });
     return response.data;
   } catch (error) {
     throw error;

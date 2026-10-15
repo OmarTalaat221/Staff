@@ -312,58 +312,6 @@ mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 $data = mysqli_fetch_assoc($result);
 
-// Daily tasks: replace the log's tasks with the ones sent, keeping done_at for tasks already done
-if (hasParam("daily_tasks")) {
-    $daily_tasks = getParam("daily_tasks");
-    if (!is_array($daily_tasks)) {
-        $daily_tasks = array();
-    }
-
-    $keepIds = array();
-    foreach ($daily_tasks as $task) {
-        $task_id = (int)($task['task_id'] ?? 0);
-        if (!$task_id) {
-            continue;
-        }
-        $is_done = !empty($task['is_done']) ? 1 : 0;
-        $type = ($task['type'] ?? '') === 'closing' ? 'closing' : 'opening';
-        $keepIds[] = "'" . $type . "-" . $task_id . "'";
-
-        $stmt = mysqli_prepare($con, "
-            INSERT INTO attendance_tasks (attendance_id, task_id, type, is_done, done_at, done_by)
-            VALUES (?, ?, ?, ?, IF(? = 1, NOW(), NULL), IF(? = 1, 'admin', NULL))
-            ON DUPLICATE KEY UPDATE
-                done_at = IF(VALUES(is_done) = 1, IF(is_done = 1, done_at, NOW()), NULL),
-                done_by = IF(VALUES(is_done) = 1, IF(is_done = 1, done_by, 'admin'), NULL),
-                is_done = VALUES(is_done)
-        ");
-        if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "iisiii", $attendance_id, $task_id, $type, $is_done, $is_done, $is_done);
-            mysqli_stmt_execute($stmt);
-        }
-    }
-
-    $deleteQuery = "DELETE FROM attendance_tasks WHERE attendance_id = '$attendance_id'";
-    if (count($keepIds) > 0) {
-        $deleteQuery .= " AND CONCAT(type, '-', task_id) NOT IN (" . implode(",", $keepIds) . ")";
-    }
-    mysqli_query($con, $deleteQuery);
-}
-
-if ($data) {
-    $data['daily_tasks'] = array();
-    $tasksQuery = mysqli_query($con, "
-        SELECT at.id, at.task_id, at.type, t.title, t.description, at.is_done, at.done_at, at.done_by
-        FROM attendance_tasks at
-        JOIN daily_tasks t ON t.id = at.task_id
-        WHERE at.attendance_id = '$attendance_id'
-        ORDER BY at.id ASC
-    ");
-    while ($tasksQuery && $taskRow = mysqli_fetch_assoc($tasksQuery)) {
-        $data['daily_tasks'][] = $taskRow;
-    }
-}
-
 $response->status = "success";
 $response->message = $action === "created" ? "Attendance log created successfully." : "Attendance log updated successfully.";
 $response->action = $action;

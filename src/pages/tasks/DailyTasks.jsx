@@ -1,59 +1,78 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { Table, Button, Modal, Form, Input, Switch, Space, Popconfirm, Tooltip, Tag } from "antd";
-import { Plus, Edit2, Trash2, Search } from "lucide-react";
+import { Table, Button, Modal, Form, Input, Select, Switch, Space, Popconfirm, Tooltip, Tag, Segmented } from "antd";
+import { Plus, Edit2, Trash2, Search, X } from "lucide-react";
 import toast from "react-hot-toast";
-import { getTasks, addTask, updateTask, deleteTask } from "../../features/Tasks/taskService";
+import { getTaskLists, addTaskList, updateTaskList, deleteTaskList } from "../../features/Tasks/taskService";
+import { getAllStaff } from "../../features/Staff/staffService";
+
+const TYPE_TAGS = {
+  opening: { color: "green", label: "Opening" },
+  closing: { color: "volcano", label: "Closing" },
+};
 
 export default function DailyTasks() {
-  const [tasks, setTasks] = useState([]);
+  const [lists, setLists] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
+  const [editingList, setEditingList] = useState(null);
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm();
 
-  const fetchTasks = useCallback(async () => {
+  const fetchLists = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await getTasks();
+      const res = await getTaskLists();
       if (res?.status === "success") {
-        setTasks(res.data || []);
+        setLists(res.data || []);
       } else {
-        toast.error(res?.message || "Failed to fetch tasks");
+        toast.error(res?.message || "Failed to fetch task lists");
       }
     } catch (error) {
-      toast.error(error.message || "Failed to load tasks");
+      toast.error(error.message || "Failed to load task lists");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    fetchLists();
+    getAllStaff()
+      .then((res) => {
+        if (res?.status === "success") setStaff(res.data || []);
+      })
+      .catch((e) => console.error("Failed to load staff", e));
+  }, [fetchLists]);
 
-  const filteredTasks = useMemo(() => {
+  const filteredLists = useMemo(() => {
     const q = searchText.trim().toLowerCase();
-    if (!q) return tasks;
-    return tasks.filter(
-      (t) => t.title?.toLowerCase().includes(q) || t.description?.toLowerCase().includes(q)
-    );
-  }, [tasks, searchText]);
+    return lists.filter((l) => {
+      if (typeFilter !== "all" && l.type !== typeFilter) return false;
+      if (!q) return true;
+      return (
+        l.title?.toLowerCase().includes(q) ||
+        (l.items || []).some((i) => i.title?.toLowerCase().includes(q))
+      );
+    });
+  }, [lists, searchText, typeFilter]);
 
   const handleOpenAdd = () => {
-    setEditingTask(null);
+    setEditingList(null);
     form.resetFields();
-    form.setFieldsValue({ is_active: true });
+    form.setFieldsValue({ type: "opening", is_active: true, items: [{ title: "" }], employee_ids: [] });
     setModalOpen(true);
   };
 
-  const handleOpenEdit = (task) => {
-    setEditingTask(task);
+  const handleOpenEdit = (list) => {
+    setEditingList(list);
     form.setFieldsValue({
-      title: task.title,
-      description: task.description,
-      is_active: Number(task.is_active ?? 1) === 1,
+      title: list.title,
+      type: list.type,
+      is_active: Number(list.is_active ?? 1) === 1,
+      items: (list.items || []).map((i) => ({ id: i.id, title: i.title })),
+      employee_ids: (list.employees || []).map((e) => String(e.employee_id)),
     });
     setModalOpen(true);
   };
@@ -63,16 +82,20 @@ export default function DailyTasks() {
     try {
       const payload = {
         title: values.title.trim(),
-        description: values.description?.trim() || "",
+        type: values.type,
         is_active: values.is_active ? 1 : 0,
+        items: (values.items || [])
+          .filter((i) => i?.title?.trim())
+          .map((i) => ({ id: i.id, title: i.title.trim() })),
+        employee_ids: values.employee_ids || [],
       };
-      const res = editingTask
-        ? await updateTask({ ...payload, id: editingTask.id })
-        : await addTask(payload);
+      const res = editingList
+        ? await updateTaskList({ ...payload, id: editingList.id })
+        : await addTaskList(payload);
       if (res?.status === "success") {
-        toast.success(editingTask ? "Task updated successfully!" : "Task added successfully!");
+        toast.success(editingList ? "List updated successfully!" : "List added successfully!");
         setModalOpen(false);
-        fetchTasks();
+        fetchLists();
       } else {
         toast.error(res?.message || "Operation failed");
       }
@@ -83,14 +106,14 @@ export default function DailyTasks() {
     }
   };
 
-  const handleDelete = async (task) => {
+  const handleDelete = async (list) => {
     try {
-      const res = await deleteTask(task.id);
+      const res = await deleteTaskList(list.id);
       if (res?.status === "success") {
-        toast.success("Task deleted successfully!");
-        fetchTasks();
+        toast.success("List deleted successfully!");
+        fetchLists();
       } else {
-        toast.error(res?.message || "Failed to delete task");
+        toast.error(res?.message || "Failed to delete list");
       }
     } catch {
       toast.error("Delete failed");
@@ -99,30 +122,67 @@ export default function DailyTasks() {
 
   const columns = [
     {
-      title: "#",
-      key: "index",
-      width: 60,
-      render: (_, __, i) => <span className="text-text/40 text-xs font-semibold">{i + 1}</span>,
-    },
-    {
-      title: "Task",
+      title: "List",
       dataIndex: "title",
       key: "title",
       render: (title) => <span className="font-bold text-text text-sm">{title}</span>,
     },
     {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-      render: (val) => <span className="text-text/60 text-xs">{val || "—"}</span>,
+      title: "Type",
+      dataIndex: "type",
+      key: "type",
+      width: 110,
+      render: (type) => {
+        const cfg = TYPE_TAGS[type] || TYPE_TAGS.opening;
+        return <Tag color={cfg.color}>{cfg.label}</Tag>;
+      },
+    },
+    {
+      title: "Items",
+      dataIndex: "items",
+      key: "items",
+      render: (items = []) =>
+        items.length ? (
+          <Tooltip
+            title={
+              <ul className="list-disc pl-4">
+                {items.map((i) => (
+                  <li key={i.id}>{i.title}</li>
+                ))}
+              </ul>
+            }
+          >
+            <span className="text-text/70 text-xs font-semibold cursor-default">
+              {items.length} item{items.length > 1 ? "s" : ""}
+            </span>
+          </Tooltip>
+        ) : (
+          <span className="text-text/30 text-xs">—</span>
+        ),
+    },
+    {
+      title: "Assigned Staff",
+      dataIndex: "employees",
+      key: "employees",
+      render: (employees = []) =>
+        employees.length ? (
+          <div className="flex flex-wrap gap-1">
+            {employees.map((e) => (
+              <Tag key={e.employee_id} className="m-0">
+                {e.full_name}
+              </Tag>
+            ))}
+          </div>
+        ) : (
+          <span className="text-text/30 text-xs">Not assigned</span>
+        ),
     },
     {
       title: "Status",
       dataIndex: "is_active",
       key: "is_active",
-      width: 110,
-      render: (val) =>
-        Number(val ?? 1) === 1 ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>,
+      width: 100,
+      render: (val) => (Number(val ?? 1) === 1 ? <Tag color="green">Active</Tag> : <Tag>Inactive</Tag>),
     },
     {
       title: "Actions",
@@ -141,8 +201,8 @@ export default function DailyTasks() {
           </Tooltip>
           <Tooltip title="Delete">
             <Popconfirm
-              title="Delete this task?"
-              description="It will no longer be available when logging attendance."
+              title="Delete this list?"
+              description="Its items and all their checks will be removed."
               onConfirm={() => handleDelete(record)}
               okText="Delete"
               cancelText="Cancel"
@@ -165,7 +225,7 @@ export default function DailyTasks() {
         <div>
           <h1 className="text-xl font-bold text-text">Daily Tasks</h1>
           <p className="text-sm text-text/50 mt-1">
-            Manage the checklist of tasks assigned to staff on clock in / clock out
+            Opening and closing checklists assigned to staff on every shift
           </p>
         </div>
 
@@ -175,67 +235,130 @@ export default function DailyTasks() {
           onClick={handleOpenAdd}
           className="flex items-center gap-2 h-11 font-bold rounded-xl"
         >
-          Add Task
+          Add List
         </Button>
       </div>
 
       {/* Filters */}
-      <div className="bg-surface border border-border rounded-2xl p-4">
+      <div className="bg-surface border border-border rounded-2xl p-4 flex flex-col md:flex-row md:items-center gap-3">
         <div className="w-full md:w-72">
           <Input
             prefix={<Search size={16} className="text-text/30 mr-1" />}
-            placeholder="Search tasks..."
+            placeholder="Search lists or items..."
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             allowClear
             className="h-10 rounded-xl"
           />
         </div>
+        <Segmented
+          value={typeFilter}
+          onChange={setTypeFilter}
+          options={[
+            { label: "All", value: "all" },
+            { label: "Opening", value: "opening" },
+            { label: "Closing", value: "closing" },
+          ]}
+        />
       </div>
 
       {/* Table */}
       <div className="bg-surface border border-border rounded-2xl overflow-hidden">
         <Table
           columns={columns}
-          dataSource={filteredTasks}
+          dataSource={filteredLists}
           rowKey="id"
           loading={loading}
           pagination={{ pageSize: 10 }}
-          scroll={{ x: 700 }}
+          scroll={{ x: 800 }}
         />
       </div>
 
       <Modal
         title={
           <div className="flex items-center gap-2 text-primary font-bold">
-            {editingTask ? <Edit2 size={18} /> : <Plus size={18} />}
-            <span>{editingTask ? "Edit Task" : "Add Task"}</span>
+            {editingList ? <Edit2 size={18} /> : <Plus size={18} />}
+            <span>{editingList ? "Edit List" : "Add List"}</span>
           </div>
         }
         open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => setModalOpen(false)}
-        okText={editingTask ? "Save Changes" : "Add Task"}
+        okText={editingList ? "Save Changes" : "Add List"}
         cancelText="Cancel"
         confirmLoading={saving}
+        width={600}
         className="rounded-2xl overflow-hidden"
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit} className="py-4">
           <Form.Item
             name="title"
-            label="Task Title"
-            rules={[{ required: true, whitespace: true, message: "Please enter task title!" }]}
+            label="List Title"
+            rules={[{ required: true, whitespace: true, message: "Please enter list title!" }]}
           >
-            <Input placeholder="e.g. Clean the kitchen" className="h-11 rounded-xl" />
+            <Input placeholder="e.g. Kitchen Opening" className="h-11 rounded-xl" />
           </Form.Item>
 
-          <Form.Item name="description" label="Description">
-            <Input.TextArea rows={3} placeholder="Optional details" className="rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Form.Item name="type" label="Type" rules={[{ required: true }]}>
+              <Segmented
+                block
+                options={[
+                  { label: "Opening", value: "opening" },
+                  { label: "Closing", value: "closing" },
+                ]}
+              />
+            </Form.Item>
+
+            <Form.Item name="is_active" label="Active" valuePropName="checked">
+              <Switch />
+            </Form.Item>
+          </div>
+
+          <Form.Item name="employee_ids" label="Assigned Staff">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Select staff members"
+              optionFilterProp="label"
+              options={staff.map((s) => ({ value: String(s.employee_id), label: s.full_name }))}
+            />
           </Form.Item>
 
-          <Form.Item name="is_active" label="Active" valuePropName="checked">
-            <Switch />
-          </Form.Item>
+          <div className="font-semibold text-text mb-2">Items</div>
+          <Form.List name="items">
+            {(fields, { add, remove }) => (
+              <div className="space-y-2">
+                {fields.map(({ key, name }, index) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <span className="text-xs text-text/40 font-semibold w-5">{index + 1}.</span>
+                    <Form.Item name={[name, "id"]} hidden>
+                      <Input />
+                    </Form.Item>
+                    <Form.Item name={[name, "title"]} noStyle>
+                      <Input placeholder="Item" className="h-10 rounded-xl flex-1" />
+                    </Form.Item>
+                    <button
+                      type="button"
+                      onClick={() => remove(name)}
+                      className="text-red-500 hover:text-red-400 cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+                <Button
+                  type="dashed"
+                  block
+                  icon={<Plus size={14} />}
+                  onClick={() => add({ title: "" })}
+                  className="rounded-xl"
+                >
+                  Add Item
+                </Button>
+              </div>
+            )}
+          </Form.List>
         </Form>
       </Modal>
     </div>

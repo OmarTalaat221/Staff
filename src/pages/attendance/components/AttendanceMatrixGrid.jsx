@@ -122,7 +122,6 @@ export default function AttendanceMatrixGrid({
   onOpenAdd,
   onOpenEdit,
   onDeleteShift,
-  onOpenTasks,
   onQuickAddStaff,
   loading = false,
 }) {
@@ -161,6 +160,19 @@ export default function AttendanceMatrixGrid({
     });
     return map;
   }, [records]);
+
+  // Only staff with a shift or an attendance log in this month
+  const activeStaffList = useMemo(() => {
+    const activeIds = new Set();
+    Object.keys(shiftsMap).forEach((key) => activeIds.add(key.split("_")[0]));
+    records.forEach((r) => {
+      const d = dayjs(r.date);
+      if (r.attendanceId && d.year() === rotaYear && d.month() + 1 === rotaMonth) {
+        activeIds.add(String(r.staffId));
+      }
+    });
+    return staffList.filter((s) => activeIds.has(String(s.id)));
+  }, [staffList, shiftsMap, records, rotaYear, rotaMonth]);
 
   // Compute ACTUAL worked hours & costs across all employees and days
   const { dailyHours, dailyCosts, grandTotalHours, grandTotalCost } = useMemo(() => {
@@ -292,21 +304,9 @@ export default function AttendanceMatrixGrid({
                 const shiftLetter = ((shift.shift_type || attRecord?.shiftName || "M")).charAt(0).toUpperCase();
                 const startTimeStr = (shift.start_time || attRecord?.scheduledStart || "").slice(0, 5);
                 const endTimeStr = (shift.end_time || attRecord?.scheduledEnd || "").slice(0, 5);
-                const tasks = attRecord?.dailyTasks || [];
+                // checklist progress only once the employee has clocked in
+                const tasks = attRecord?.attendanceId ? attRecord.dailyTasks || [] : [];
                 const doneCount = tasks.filter((t) => t.done).length;
-                const openTasks = () =>
-                  onOpenTasks?.(
-                    attRecord || {
-                      id: shift.shift_id,
-                      staffId: record.id,
-                      staffName: record.name,
-                      date: dateStr,
-                      shiftName: shift.shift_type,
-                      lateMinutes: 0,
-                      status: cellData.status,
-                      dailyTasks: [],
-                    }
-                  );
 
                 return (
                   <div
@@ -319,23 +319,16 @@ export default function AttendanceMatrixGrid({
                         <span className="text-[8px] font-black text-text/60 uppercase">
                           {shiftLetter}
                         </span>
-                        <span
-                          className={`text-[7.5px] font-black uppercase px-1.5 py-0.5 rounded leading-none border tracking-wider ${statusCfg.badgeClass}`}
-                        >
-                          {statusCfg.label}
-                        </span>
+                        {!["present", "absent"].includes(cellData.status) && (
+                          <span
+                            className={`text-[7.5px] font-black uppercase px-1.5 py-0.5 rounded leading-none border tracking-wider ${statusCfg.badgeClass}`}
+                          >
+                            {statusCfg.label}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                        {!cellData.isFuture && (
-                          <button
-                            onClick={openTasks}
-                            className="text-emerald-600 hover:text-emerald-500 cursor-pointer"
-                            title="Daily Tasks"
-                          >
-                            <ListChecks size={9} />
-                          </button>
-                        )}
                       {!shift.isLogOnly && (
                         <>
                           <button
@@ -361,20 +354,19 @@ export default function AttendanceMatrixGrid({
                     </div>
 
                     {tasks.length > 0 && (
-                      <button
-                        onClick={openTasks}
-                        className={`absolute bottom-1 right-1 flex items-center gap-0.5 text-[7.5px] font-black px-1 py-0.5 rounded leading-none border cursor-pointer ${
+                      <span
+                        className={`absolute bottom-1 right-1 flex items-center gap-0.5 text-[7.5px] font-black px-1 py-0.5 rounded leading-none border cursor-default ${
                           doneCount === tasks.length
                             ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                             : "bg-amber-50 text-amber-600 border-amber-200"
                         }`}
                         title={tasks
-                          .map((t) => `${t.done ? "✓" : "○"} ${t.title}${t.done && t.doneAt ? ` (${dayjs(t.doneAt).format("h:mm a")})` : ""}`)
+                          .map((t) => `${t.done ? "✓" : "○"} ${t.title}${t.done && t.doneAt ? ` (${dayjs(t.doneAt).format("h:mm a")}${t.checkedByName ? ` · ${t.checkedByName}` : ""})` : ""}`)
                           .join(" | ")}
                       >
                         <ListChecks size={8} />
                         {doneCount}/{tasks.length}
-                      </button>
+                      </span>
                     )}
 
                     {/* Middle: Attendance In/Out or Scheduled Time */}
@@ -511,13 +503,13 @@ export default function AttendanceMatrixGrid({
     });
 
     return cols;
-  }, [allDayNumbers, rotaYear, rotaMonth, shiftsMap, attendanceMap, showCost, onOpenAdd, onOpenEdit, onDeleteShift, onOpenTasks]);
+  }, [allDayNumbers, rotaYear, rotaMonth, shiftsMap, attendanceMap, showCost, onOpenAdd, onOpenEdit, onDeleteShift]);
 
   return (
     <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-sm">
       <Table
         columns={columns}
-        dataSource={staffList}
+        dataSource={activeStaffList}
         rowKey="id"
         pagination={false}
         scroll={{ x: "max-content", y: "calc(100vh - 280px)" }}
