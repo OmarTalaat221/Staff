@@ -10,6 +10,7 @@ import {
   Video,
   Users,
   Copy,
+  ListChecks,
 } from "lucide-react";
 
 const menuItems = [
@@ -36,6 +37,12 @@ const menuItems = [
     label: "Attendance",
     icon: ClipboardCheck,
     path: "/attendance",
+  },
+  {
+    key: "tasks",
+    label: "Daily Tasks",
+    icon: ListChecks,
+    path: "/tasks",
   },
   {
     key: "rota",

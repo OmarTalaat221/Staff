@@ -1,12 +1,21 @@
-import React, { useState } from "react";
-import { Table, Button, Modal, Form, Select, DatePicker, TimePicker, Input, Space, Popconfirm, Tooltip, Segmented } from "antd";
-import { Plus, Edit2, Trash2, Search, Calendar, User, Clock, CheckCircle2, XCircle, ArrowUpRight, ShieldAlert, Timer, Play, Power, X, UserCheck } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Table, Button, Modal, Form, Select, DatePicker, TimePicker, Input, Space, Popconfirm, Checkbox, Tooltip, Segmented, Tag } from "antd";
+import { Plus, Edit2, Trash2, Search, Calendar, User, Clock, CheckCircle2, XCircle, ArrowUpRight, ShieldAlert, Timer, Play, Power, X, UserCheck, ChevronLeft, ChevronRight, CalendarDays, LayoutGrid, List } from "lucide-react";
 import dayjs from "dayjs";
 import useAttendance from "./useAttendance";
+import { getTasks } from "../../features/Tasks/taskService";
 import useAttendanceStats from "./useAttendanceStats";
 import AttendanceStatsTable from "./components/AttendanceStatsTable";
+import AttendanceWeekView from "./components/AttendanceWeekView";
+import AttendanceMatrixGrid from "./components/AttendanceMatrixGrid";
+import AttendanceShiftDrawer from "./components/AttendanceShiftDrawer";
 
 const { Option } = Select;
+
+const ARABIC_MONTHS = [
+  "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+  "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
+];
 
 // Beautiful StatCard component styled identically to key pages (Expenses, Leave)
 const StatCard = ({ icon: Icon, label, value, color }) => (
@@ -62,6 +71,8 @@ export default function Attendance() {
 
   const {
     records,
+    allRecords,
+    allShifts,
     totalCount,
     page,
     setPage,
@@ -69,9 +80,41 @@ export default function Attendance() {
     stats,
     liveTime,
     staffList,
+    displayStaffList,
     shifts,
     departments,
     roles,
+
+    // Matrix View controls
+    selectedMonth,
+    setSelectedMonth,
+    showCost,
+    setShowCost,
+    shiftDrawerOpen,
+    shiftDrawerEditShift,
+    preSelectedShiftDay,
+    preSelectedShiftStaffId,
+    handleOpenAddShift,
+    handleOpenEditShift,
+    handleCloseShiftDrawer,
+    handleDeleteShift,
+    refreshShifts,
+
+    // View mode (Matrix Grid vs Week View vs Table View)
+    viewMode,
+    setViewMode,
+
+    // Week navigation & grouped data
+    currentWeekStart,
+    setCurrentWeekStart,
+    weekDays,
+    weekLabel,
+    goToPrevWeek,
+    goToNextWeek,
+    goToToday,
+    groupedWeekRecords,
+    shiftTypeFilter,
+    setShiftTypeFilter,
 
     // Clock widget
     selectedStaffId,
@@ -112,11 +155,33 @@ export default function Attendance() {
     handleOpenEdit,
     handleConfirmEdit,
     handleDeleteRecord,
+    preSelectedDate,
     loading,
   } = useAttendance();
 
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [taskOptions, setTaskOptions] = useState([]);
+
+  useEffect(() => {
+    getTasks()
+      .then((res) => {
+        if (res?.status === "success") setTaskOptions(res.data || []);
+      })
+      .catch((e) => console.error("Failed to load tasks", e));
+  }, []);
+
+  const openEditLog = (record) => {
+    handleOpenEdit(record);
+    editForm.setFieldsValue({
+      shiftName: record.shiftName || "Morning",
+      checkIn: record.checkIn ? dayjs(record.checkIn, "h:mm a") : null,
+      checkOut: record.checkOut ? dayjs(record.checkOut, "h:mm a") : null,
+      lateMinutes: record.lateMinutes ?? 0,
+      status: record.status,
+      dailyTasks: record.dailyTasks || [],
+    });
+  };
 
   // Columns for the table
   const columns = [
@@ -197,12 +262,29 @@ export default function Attendance() {
       title: "Late",
       dataIndex: "lateMinutes",
       key: "late",
-      width: 100,
-      render: (v) => (
-        <span className={`text-sm font-bold ${v > 0 ? "text-warning" : "text-text/30"}`}>
-          {v > 0 ? `${v}m` : "—"}
-        </span>
-      ),
+      width: 190,
+      render: (v, record) => {
+        if (!(v > 0)) return <span className="text-sm font-bold text-text/30">—</span>;
+        const hours = Math.floor(v / 60);
+        const mins = v % 60;
+        const lateLabel = hours > 0 ? `${hours}h${mins > 0 ? ` ${mins}m` : ""}` : `${mins}m`;
+        const fmt = (t) => (t ? dayjs(t, "HH:mm").format("h:mm a") : "—");
+        return (
+          <div className="leading-tight space-y-0.5">
+            <div className="text-sm font-bold text-warning">{lateLabel}</div>
+            {record.scheduledStart && (
+              <div className="text-[10px] text-text/50 font-medium whitespace-nowrap">
+                Shift: {fmt(record.scheduledStart)} – {fmt(record.scheduledEnd)}
+              </div>
+            )}
+            {record.checkIn && (
+              <div className="text-[10px] text-text/50 font-medium whitespace-nowrap">
+                Attended: {record.checkIn} – {record.checkOut || "now"}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       title: "Status",
@@ -228,6 +310,7 @@ export default function Attendance() {
                 checkOut: record.checkOut ? dayjs(record.checkOut, "h:mm a") : null,
                 lateMinutes: record.lateMinutes ?? 0,
                 status: record.status,
+                dailyTasks: record.dailyTasks || [],
               });
             }}
             className="text-primary hover:text-primary/70 transition-colors cursor-pointer"
@@ -242,259 +325,543 @@ export default function Attendance() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
         <div>
-          <h1 className="text-text text-2xl font-bold">Attendance & Clock Console</h1>
-          <p className="text-text/60 text-sm mt-1">
-            Track daily staff working hours, handle clock-in/out console, and edit shift records.
-          </p>
+          <h1 className="text-text text-2xl font-bold">Attendance Matrix & Shifts</h1>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs text-text/60 font-semibold">
+              روته شهر {ARABIC_MONTHS[selectedMonth.month()]} {selectedMonth.year()}
+            </span>
+            <Tag color="primary" className="m-0 font-bold text-[10px] px-2 py-0.5 leading-none rounded-md">
+              {displayStaffList.length} Staff
+            </Tag>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Segmented
             options={[
-              { label: "Daily Console", value: "console" },
+              { label: "Console Matrix", value: "console" },
               { label: "Attendance Health", value: "health" },
             ]}
             value={activeTab}
             onChange={setActiveTab}
-            className="h-11 flex items-center p-1 rounded-xl bg-surface border border-border"
+            className="h-10 flex items-center p-1 rounded-xl bg-surface border border-border text-xs"
           />
+
           {activeTab === "console" && (
-            <Button
-              type="primary"
-              icon={<Plus size={18} />}
-              onClick={() => {
-                handleOpenAdd();
-                addForm.resetFields();
-                addForm.setFieldsValue({
-                  date: dayjs(),
-                  shiftName: "Morning",
-                  status: "present",
-                  lateMinutes: 0,
-                });
-              }}
-              className="flex items-center gap-2 h-11 font-bold rounded-xl"
-            >
-              Add Log Manually
-            </Button>
+            <>
+              <Segmented
+                options={[
+                  { label: <span className="flex items-center gap-1.5"><LayoutGrid size={14} /> Matrix Grid</span>, value: "matrix" },
+                  { label: <span className="flex items-center gap-1.5"><CalendarDays size={14} /> Week View</span>, value: "week" },
+                  { label: <span className="flex items-center gap-1.5"><List size={14} /> Table View</span>, value: "table" },
+                ]}
+                value={viewMode}
+                onChange={setViewMode}
+                className="h-10 flex items-center p-1 rounded-xl bg-surface border border-border font-bold text-xs"
+              />
+
+              {viewMode === "matrix" && (
+                <DatePicker
+                  picker="month"
+                  value={selectedMonth}
+                  onChange={(d) => d && setSelectedMonth(d)}
+                  allowClear={false}
+                  format="MMMM YYYY"
+                  className="h-10 rounded-xl font-bold w-36 text-xs"
+                  inputReadOnly
+                />
+              )}
+
+              {viewMode === "matrix" && (
+                <Button
+                  size="middle"
+                  onClick={() => setShowCost((prev) => !prev)}
+                  className="text-xs font-bold rounded-xl h-10 px-3.5 cursor-pointer"
+                >
+                  {showCost ? "Hide Cost" : "Show Cost"}
+                </Button>
+              )}
+
+              <Button
+                type="primary"
+                icon={<Plus size={16} />}
+                onClick={() => handleOpenAddShift()}
+                className="flex items-center gap-1.5 h-10 font-bold rounded-xl text-xs px-3.5"
+              >
+                + Add Shift
+              </Button>
+
+              <Button
+                icon={<Plus size={16} />}
+                onClick={() => {
+                  handleOpenAdd();
+                  addForm.resetFields();
+                  addForm.setFieldsValue({
+                    date: dayjs(),
+                    shiftName: "Morning",
+                    status: "present",
+                    lateMinutes: 0,
+                  });
+                }}
+                className="flex items-center gap-1.5 h-10 font-bold rounded-xl text-xs px-3.5"
+              >
+                + Add Log
+              </Button>
+            </>
           )}
         </div>
       </div>
+
       {/* Daily Console Tab Content */}
       {activeTab === "console" && (
         <>
-        
+          {viewMode === "matrix" ? (
+            /* Matrix Grid View (Matching Rota Details layout) */
+            <div className="space-y-4">
+              {/* Matrix Filter Bar */}
+              <div className="bg-surface border border-border rounded-2xl p-4 flex flex-wrap items-center gap-3">
+                <div className="w-full sm:w-64 relative">
+                  <Input
+                    prefix={<Search size={15} className="text-text/30 mr-1" />}
+                    placeholder="Search staff by name..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    allowClear
+                    className="h-10 rounded-xl"
+                  />
+                </div>
 
-          {/* Stats Cards Section */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard
-              icon={UserCheck}
-              label="Present (Today)"
-              value={stats.present}
-              color="#16a34a"
-            />
-            <StatCard
-              icon={Clock}
-              label="Late Arrivals (Today)"
-              value={stats.late}
-              color="#d97706"
-            />
-            <StatCard
-              icon={XCircle}
-              label="Absent Today"
-              value={stats.absent}
-              color="#dc2626"
-            />
-            <StatCard
-              icon={Timer}
-              label="Average Shift worked"
-              value={stats.averageHours}
-              color="#84b067"
-            />
-          </div>
+                <Select
+                  placeholder="Department"
+                  value={department || undefined}
+                  onChange={(val) => setDepartment(val || "")}
+                  allowClear
+                  className="w-full sm:w-40 h-10 rounded-xl"
+                >
+                  {departments.map((d) => (
+                    <Option key={d} value={d}>{d}</Option>
+                  ))}
+                </Select>
 
-          {/* Filters Section */}
-          <div className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-4">
-            {/* Row 1: Period + Date Filters */}
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex rounded-xl border border-border overflow-hidden shrink-0">
-                {[
-                  { key: "day", label: "Day" },
-                  { key: "week", label: "Week" },
-                  { key: "month", label: "Month" },
-                ].map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => {
-                      setPeriod(opt.key);
-                      setPage(1);
-                    }}
-                    className={`px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
-                      period === opt.key
-                        ? "bg-primary text-white"
-                        : "bg-surface text-text/60 hover:bg-bg"
-                    }`}
+                <Select
+                  placeholder="Role"
+                  value={role || undefined}
+                  onChange={(val) => setRole(val || "")}
+                  allowClear
+                  className="w-full sm:w-36 h-10 rounded-xl"
+                >
+                  {roles.map((r) => (
+                    <Option key={r} value={r}>{r}</Option>
+                  ))}
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button
+                    type="text"
+                    onClick={handleClearFilters}
+                    icon={<X size={14} />}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-text/50 hover:text-text cursor-pointer"
                   >
-                    {opt.label}
-                  </button>
-                ))}
+                    Clear Filters
+                  </Button>
+                )}
               </div>
 
-              <DatePicker
-                picker={period === "day" ? "date" : period === "week" ? "week" : "month"}
-                value={selectedDate}
-                onChange={(d) => {
-                  setSelectedDate(d || dayjs());
-                  setPage(1);
-                }}
-                allowClear={false}
-                format={period === "day" ? "DD MMMM YYYY" : period === "week" ? "[Week of] DD MMM" : "MMMM YYYY"}
-                className="h-10 rounded-xl w-full sm:w-48 font-semibold text-text"
-                inputReadOnly
+              {/* Main Matrix Grid */}
+              <AttendanceMatrixGrid
+                staffList={displayStaffList}
+                shifts={allShifts}
+                records={allRecords}
+                selectedMonth={selectedMonth}
+                showCost={showCost}
+                onOpenAdd={handleOpenAddShift}
+                onOpenEdit={handleOpenEditShift}
+                onDeleteShift={handleDeleteShift}
+                onOpenTasks={openEditLog}
+                onQuickAddStaff={() => handleOpenAddShift(1)}
+                loading={loading}
               />
             </div>
-
-            {/* Row 2: Search + Select Dropdowns */}
-            <div className="flex flex-wrap items-center gap-3">
-              <Select
-                showSearch
-                placeholder="Select Staff Member"
-                optionFilterProp="children"
-                value={selectedStaffId || undefined}
-                onChange={setSelectedStaffId}
-                className="w-full sm:w-56 h-10 rounded-xl font-semibold text-text"
-              >
-                {staffList.map((s) => (
-                  <Option key={s.id} value={s.id}>{s.name} ({s.role})</Option>
-                ))}
-              </Select>
-
-              <div className="w-full sm:w-64 relative">
-                <Input
-                  prefix={<Search size={15} className="text-text/30 mr-1" />}
-                  placeholder="Search staff by name..."
-                  value={searchText}
-                  onChange={(e) => {
-                    setSearchText(e.target.value);
-                    setPage(1);
-                  }}
-                  allowClear
-                  className="h-10 rounded-xl"
+          ) : viewMode === "week" ? (
+            /* Week View */
+            <div className="space-y-4">
+              {/* Stats Cards Section */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  icon={UserCheck}
+                  label="Present (Today)"
+                  value={stats.present}
+                  color="#16a34a"
+                />
+                <StatCard
+                  icon={Clock}
+                  label="Late Arrivals (Today)"
+                  value={stats.late}
+                  color="#d97706"
+                />
+                <StatCard
+                  icon={XCircle}
+                  label="Absent Today"
+                  value={stats.absent}
+                  color="#dc2626"
+                />
+                <StatCard
+                  icon={Timer}
+                  label="Average Shift worked"
+                  value={stats.averageHours}
+                  color="#84b067"
                 />
               </div>
 
-              <Select
-                placeholder="Department"
-                value={department || undefined}
-                onChange={(val) => {
-                  setDepartment(val || "");
-                  setPage(1);
-                }}
-                allowClear
-                className="w-full sm:w-40 h-10 rounded-xl"
-              >
-                {departments.map((d) => (
-                  <Option key={d} value={d}>{d}</Option>
-                ))}
-              </Select>
-
-              <Select
-                placeholder="Role"
-                value={role || undefined}
-                onChange={(val) => {
-                  setRole(val || "");
-                  setPage(1);
-                }}
-                allowClear
-                className="w-full sm:w-36 h-10 rounded-xl"
-              >
-                {roles.map((r) => (
-                  <Option key={r} value={r}>{r}</Option>
-                ))}
-              </Select>
-
-              <Select
-                placeholder="Status"
-                value={statusFilter || undefined}
-                onChange={(val) => {
-                  setStatusFilter(val || "");
-                  setPage(1);
-                }}
-                allowClear
-                className="w-full sm:w-36 h-10 rounded-xl"
-              >
-                <Option value="present">Present</Option>
-                <Option value="late">Late</Option>
-                <Option value="absent">Absent</Option>
-                <Option value="on-leave">On Leave</Option>
-              </Select>
-
-              {hasActiveFilters && (
-                <Button
-                  type="text"
-                  onClick={handleClearFilters}
-                  icon={<X size={14} />}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-text/50 hover:text-text cursor-pointer"
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Logs Table Grid */}
-          <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-            <Table
-              columns={columns}
-              dataSource={records}
-              loading={loading}
-              rowKey="id"
-              pagination={false}
-              scroll={{ x: 1000 }}
-              size="middle"
-              locale={{
-                emptyText: (
-                  <div className="py-12 text-center">
-                    <p className="text-text/50 text-sm font-semibold">No attendance logs found</p>
-                    <p className="text-text/30 text-xs mt-1">Try adjusting your filters or date picker selection</p>
+              {/* Week View Filters & Navigation */}
+              <div className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={goToPrevWeek}
+                      className="p-2.5 rounded-xl border border-border hover:bg-bg text-text/60 hover:text-text transition-all cursor-pointer"
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button
+                      onClick={goToToday}
+                      className="px-3.5 py-2 rounded-xl border border-border hover:bg-bg text-sm font-bold text-text/70 hover:text-text transition-all flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <CalendarDays size={16} />
+                      Today
+                    </button>
+                    <button
+                      onClick={goToNextWeek}
+                      className="p-2.5 rounded-xl border border-border hover:bg-bg text-text/60 hover:text-text transition-all cursor-pointer"
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                    <span className="text-base font-black text-text ml-2">
+                      {weekLabel}
+                    </span>
                   </div>
-                ),
-              }}
-              rowClassName="hover:bg-bg/40 transition-colors"
-            />
 
-            {/* Custom Table Pagination Footer */}
-            {totalCount > pageSize && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-bg/10">
-                <p className="text-xs text-text/50 font-semibold">
-                  Showing{" "}
-                  <span className="font-bold text-text">
-                    {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)}
-                  </span>{" "}
-                  of <span className="font-bold text-text">{totalCount}</span> logs
-                </p>
-                <div className="flex gap-1.5">
-                  <Button
-                    disabled={page === 1}
-                    onClick={() => setPage(page - 1)}
-                    size="small"
-                    className="rounded-lg text-xs font-bold cursor-pointer"
+                  <div className="flex items-center gap-2">
+                    <DatePicker
+                      picker="week"
+                      value={currentWeekStart}
+                      onChange={(d) => d && setCurrentWeekStart(d.startOf("isoWeek"))}
+                      allowClear={false}
+                      format="[Week of] DD MMM YYYY"
+                      className="h-10 rounded-xl w-52 font-semibold"
+                      inputReadOnly
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select
+                    showSearch
+                    placeholder="Select Staff Member"
+                    optionFilterProp="children"
+                    value={selectedStaffId || undefined}
+                    onChange={setSelectedStaffId}
+                    allowClear
+                    className="w-full sm:w-56 h-10 rounded-xl font-semibold text-text"
                   >
-                    Previous
-                  </Button>
-                  <Button
-                    disabled={page * pageSize >= totalCount}
-                    onClick={() => setPage(page + 1)}
-                    size="small"
-                    className="rounded-lg text-xs font-bold cursor-pointer"
+                    {staffList.map((s) => (
+                      <Option key={s.id} value={s.id}>{s.name} ({s.role})</Option>
+                    ))}
+                  </Select>
+
+                  <div className="w-full sm:w-60 relative">
+                    <Input
+                      prefix={<Search size={15} className="text-text/30 mr-1" />}
+                      placeholder="Search staff by name..."
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      allowClear
+                      className="h-10 rounded-xl"
+                    />
+                  </div>
+
+                  <Select
+                    placeholder="Shift Type"
+                    value={shiftTypeFilter || undefined}
+                    onChange={(val) => setShiftTypeFilter(val || "")}
+                    allowClear
+                    className="w-full sm:w-36 h-10 rounded-xl"
                   >
-                    Next
-                  </Button>
+                    <Option value="morning">Morning</Option>
+                    <Option value="afternoon">Afternoon</Option>
+                    <Option value="evening">Evening</Option>
+                  </Select>
+
+                  <Select
+                    placeholder="Role"
+                    value={role || undefined}
+                    onChange={(val) => setRole(val || "")}
+                    allowClear
+                    className="w-full sm:w-36 h-10 rounded-xl"
+                  >
+                    {roles.map((r) => (
+                      <Option key={r} value={r}>{r}</Option>
+                    ))}
+                  </Select>
+
+                  <Select
+                    placeholder="Status"
+                    value={statusFilter || undefined}
+                    onChange={(val) => setStatusFilter(val || "")}
+                    allowClear
+                    className="w-full sm:w-36 h-10 rounded-xl"
+                  >
+                    <Option value="present">Present</Option>
+                    <Option value="late">Late</Option>
+                    <Option value="absent">Absent</Option>
+                    <Option value="scheduled">Scheduled</Option>
+                  </Select>
+
+                  {hasActiveFilters && (
+                    <Button
+                      type="text"
+                      onClick={handleClearFilters}
+                      icon={<X size={14} />}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-text/50 hover:text-text cursor-pointer"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+
+              <AttendanceWeekView
+                weekDays={weekDays}
+                groupedRecords={groupedWeekRecords}
+                onEditRecord={openEditLog}
+                onDeleteRecord={handleDeleteRecord}
+                onAddLog={(date) => {
+                  handleOpenAdd(date);
+                  addForm.resetFields();
+                  addForm.setFieldsValue({
+                    date: dayjs(date),
+                    shiftName: "Morning",
+                    status: "present",
+                    lateMinutes: 0,
+                  });
+                }}
+                loading={loading}
+              />
+            </div>
+          ) : (
+            /* Table View */
+            <div className="space-y-4">
+              {/* Stats Cards Section */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  icon={UserCheck}
+                  label="Present (Today)"
+                  value={stats.present}
+                  color="#16a34a"
+                />
+                <StatCard
+                  icon={Clock}
+                  label="Late Arrivals (Today)"
+                  value={stats.late}
+                  color="#d97706"
+                />
+                <StatCard
+                  icon={XCircle}
+                  label="Absent Today"
+                  value={stats.absent}
+                  color="#dc2626"
+                />
+                <StatCard
+                  icon={Timer}
+                  label="Average Shift worked"
+                  value={stats.averageHours}
+                  color="#84b067"
+                />
+              </div>
+
+              {/* Table View Filters Section */}
+              <div className="bg-surface border border-border rounded-2xl p-4 flex flex-col gap-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex rounded-xl border border-border overflow-hidden shrink-0">
+                    {[
+                      { key: "day", label: "Day" },
+                      { key: "week", label: "Week" },
+                      { key: "month", label: "Month" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          setPeriod(opt.key);
+                          setPage(1);
+                        }}
+                        className={`px-4 py-2 text-sm font-semibold transition-colors cursor-pointer ${
+                          period === opt.key
+                            ? "bg-primary text-white"
+                            : "bg-surface text-text/60 hover:bg-bg"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <DatePicker
+                    picker={period === "day" ? "date" : period === "week" ? "week" : "month"}
+                    value={selectedDate}
+                    onChange={(d) => {
+                      setSelectedDate(d || dayjs());
+                      setPage(1);
+                    }}
+                    allowClear={false}
+                    format={period === "day" ? "DD MMMM YYYY" : period === "week" ? "[Week of] DD MMM" : "MMMM YYYY"}
+                    className="h-10 rounded-xl w-full sm:w-48 font-semibold text-text"
+                    inputReadOnly
+                  />
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select
+                    showSearch
+                    placeholder="Select Staff Member"
+                    optionFilterProp="children"
+                    value={selectedStaffId || undefined}
+                    onChange={setSelectedStaffId}
+                    className="w-full sm:w-56 h-10 rounded-xl font-semibold text-text"
+                  >
+                    {staffList.map((s) => (
+                      <Option key={s.id} value={s.id}>{s.name} ({s.role})</Option>
+                    ))}
+                  </Select>
+
+                  <div className="w-full sm:w-64 relative">
+                    <Input
+                      prefix={<Search size={15} className="text-text/30 mr-1" />}
+                      placeholder="Search staff by name..."
+                      value={searchText}
+                      onChange={(e) => {
+                        setSearchText(e.target.value);
+                        setPage(1);
+                      }}
+                      allowClear
+                      className="h-10 rounded-xl"
+                    />
+                  </div>
+
+                  <Select
+                    placeholder="Department"
+                    value={department || undefined}
+                    onChange={(val) => {
+                      setDepartment(val || "");
+                      setPage(1);
+                    }}
+                    allowClear
+                    className="w-full sm:w-40 h-10 rounded-xl"
+                  >
+                    {departments.map((d) => (
+                      <Option key={d} value={d}>{d}</Option>
+                    ))}
+                  </Select>
+
+                  <Select
+                    placeholder="Role"
+                    value={role || undefined}
+                    onChange={(val) => {
+                      setRole(val || "");
+                      setPage(1);
+                    }}
+                    allowClear
+                    className="w-full sm:w-36 h-10 rounded-xl"
+                  >
+                    {roles.map((r) => (
+                      <Option key={r} value={r}>{r}</Option>
+                    ))}
+                  </Select>
+
+                  <Select
+                    placeholder="Status"
+                    value={statusFilter || undefined}
+                    onChange={(val) => {
+                      setStatusFilter(val || "");
+                      setPage(1);
+                    }}
+                    allowClear
+                    className="w-full sm:w-36 h-10 rounded-xl"
+                  >
+                    <Option value="present">Present</Option>
+                    <Option value="late">Late</Option>
+                    <Option value="absent">Absent</Option>
+                    <Option value="on-leave">On Leave</Option>
+                  </Select>
+
+                  {hasActiveFilters && (
+                    <Button
+                      type="text"
+                      onClick={handleClearFilters}
+                      icon={<X size={14} />}
+                      className="flex items-center gap-1.5 text-xs font-semibold text-text/50 hover:text-text cursor-pointer"
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Logs Table Grid */}
+              <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+                <Table
+                  columns={columns}
+                  dataSource={records}
+                  loading={loading}
+                  rowKey="id"
+                  pagination={false}
+                  scroll={{ x: 1000 }}
+                  size="middle"
+                  locale={{
+                    emptyText: (
+                      <div className="py-12 text-center">
+                        <p className="text-text/50 text-sm font-semibold">No attendance logs found</p>
+                        <p className="text-text/30 text-xs mt-1">Try adjusting your filters or date picker selection</p>
+                      </div>
+                    ),
+                  }}
+                  rowClassName="hover:bg-bg/40 transition-colors"
+                />
+
+                {/* Custom Table Pagination Footer */}
+                {totalCount > pageSize && (
+                  <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-bg/10">
+                    <p className="text-xs text-text/50 font-semibold">
+                      Showing{" "}
+                      <span className="font-bold text-text">
+                        {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)}
+                      </span>{" "}
+                      of <span className="font-bold text-text">{totalCount}</span> logs
+                    </p>
+                    <div className="flex gap-1.5">
+                      <Button
+                        disabled={page === 1}
+                        onClick={() => setPage(page - 1)}
+                        size="small"
+                        className="rounded-lg text-xs font-bold cursor-pointer"
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        disabled={page * pageSize >= totalCount}
+                        onClick={() => setPage(page + 1)}
+                        size="small"
+                        className="rounded-lg text-xs font-bold cursor-pointer"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -635,6 +1002,7 @@ export default function Attendance() {
               <Input type="number" min={0} className="h-11 rounded-xl font-semibold" placeholder="0" />
             </Form.Item>
           </div>
+          <DailyTasksField tasks={taskOptions} />
         </Form>
       </Modal>
 
@@ -658,7 +1026,13 @@ export default function Attendance() {
         <Form
           form={editForm}
           layout="vertical"
-          onFinish={handleConfirmEdit}
+          onFinish={(values) =>
+            handleConfirmEdit({
+              ...values,
+              // recalculate lateness on the backend unless the admin edited it
+              lateMinutes: editForm.isFieldTouched("lateMinutes") ? values.lateMinutes : undefined,
+            })
+          }
           className="py-4 space-y-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -715,8 +1089,84 @@ export default function Attendance() {
               </Space.Compact>
             </Form.Item>
           </div>
+          <DailyTasksField tasks={taskOptions} />
         </Form>
       </Modal>
+
+      <AttendanceShiftDrawer
+        open={shiftDrawerOpen}
+        onClose={handleCloseShiftDrawer}
+        onSuccess={refreshShifts}
+        editShift={shiftDrawerEditShift}
+        staffMembers={staffList}
+        preSelectedDay={preSelectedShiftDay}
+        preSelectedStaffId={preSelectedShiftStaffId}
+        allDayNumbers={Array.from({ length: selectedMonth.daysInMonth() }, (_, i) => i + 1)}
+        selectedMonth={selectedMonth}
+      />
     </div>
+  );
+}
+
+function DailyTasksField({ tasks = [] }) {
+  return (
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="font-semibold text-text">
+            Daily Tasks <span className="text-xs font-normal text-gray-400">(optional)</span>
+          </span>
+        </div>
+        <Form.List name="dailyTasks">
+          {(fields, { add, remove }) => (
+            <div className="space-y-2">
+              {fields.map(({ key, name }) => (
+                <div key={key} className="flex items-center gap-2">
+                  <Form.Item name={[name, "done"]} valuePropName="checked" noStyle>
+                    <Checkbox />
+                  </Form.Item>
+                  <Form.Item name={[name, "taskId"]} noStyle>
+                    <Select
+                      showSearch
+                      placeholder="Select a task"
+                      optionFilterProp="label"
+                      className="h-10 flex-1"
+                      options={tasks
+                        .filter((t) => Number(t.is_active ?? 1) === 1)
+                        .map((t) => ({ value: t.id, label: t.title }))}
+                    />
+                  </Form.Item>
+                  <Form.Item noStyle shouldUpdate>
+                    {({ getFieldValue }) => {
+                      const task = getFieldValue(["dailyTasks", name]) || {};
+                      return task.done && task.doneAt ? (
+                        <span className="text-[10px] text-emerald-600 font-semibold whitespace-nowrap">
+                          {dayjs(task.doneAt).format("DD MMM, h:mm a")}
+                          {task.doneBy === "user" ? " · Staff" : " · Admin"}
+                        </span>
+                      ) : null;
+                    }}
+                  </Form.Item>
+                  <button
+                    type="button"
+                    onClick={() => remove(name)}
+                    className="text-red-500 hover:text-red-400 cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+              <Button
+                type="dashed"
+                block
+                icon={<Plus size={14} />}
+                onClick={() => add({ taskId: undefined, done: false })}
+                className="rounded-xl"
+              >
+                Add Task
+              </Button>
+            </div>
+          )}
+        </Form.List>
+      </div>
   );
 }

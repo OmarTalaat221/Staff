@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { setToken } from "../../utils/storage";
 
 const LOGO_URL =
-  "https://res.cloudinary.com/dhebgz7qh/image/upload/v1767452496/y3replc9wmlnvwb7kjvo_hyo3u3.png";
+  "https://res.cloudinary.com/duovxefh6/image/upload/v1791040582/nour-gold-logo_mbkmep.avif";
 
 export default function Login() {
   const [form] = Form.useForm();

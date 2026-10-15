@@ -1,8 +1,14 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import toast from "react-hot-toast";
 import { getAllStaff } from "../../features/Staff/staffService";
 import { getEmployeeLogs, updateAttendanceLog } from "../../features/Attendance/attendanceService";
+import { getAllShifts, deleteShift } from "../../features/Schedule/scheduleService";
+
+dayjs.extend(isoWeek);
+dayjs.extend(isSameOrBefore);
 
 const PAGE_SIZE = 10;
 const SHIFTS = [
@@ -14,25 +20,42 @@ const DEPARTMENTS = ["Floor", "Kitchen", "Finance", "Logistics", "Management", "
 const ROLES = ["Waiter", "Chef", "Cashier", "Host", "Delivery", "Manager", "Cleaner", "Barista", "Waitress"];
 
 export default function useAttendance() {
+  const [viewMode, setViewMode] = useState("matrix"); // "matrix", "week", or "table"
   const [records, setRecords] = useState([]);
+  const [allShifts, setAllShifts] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [selectedStaffId, setSelectedStaffId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [liveTime, setLiveTime] = useState(dayjs());
 
+  // Matrix view month and cost toggle
+  const [selectedMonth, setSelectedMonth] = useState(dayjs());
+  const [showCost, setShowCost] = useState(false);
+
+  // Shift Drawer state for Matrix Grid
+  const [shiftDrawerOpen, setShiftDrawerOpen] = useState(false);
+  const [shiftDrawerEditShift, setShiftDrawerEditShift] = useState(null);
+  const [preSelectedShiftDay, setPreSelectedShiftDay] = useState(null);
+  const [preSelectedShiftStaffId, setPreSelectedShiftStaffId] = useState(null);
+
+  // Week view navigation
+  const [currentWeekStart, setCurrentWeekStart] = useState(dayjs().startOf("isoWeek"));
+
   // Filters state
   const [searchText, setSearchText] = useState("");
-  const [period, setPeriod] = useState("day");
+  const [period, setPeriod] = useState("week");
   const [selectedDate, setSelectedDate] = useState(dayjs());
   const [department, setDepartment] = useState("");
   const [role, setRole] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [shiftTypeFilter, setShiftTypeFilter] = useState("");
 
   // Pagination & Modals state
   const [page, setPage] = useState(1);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState(null);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [preSelectedDate, setPreSelectedDate] = useState(null);
 
   // Live timer tick
   useEffect(() => {
@@ -42,31 +65,58 @@ export default function useAttendance() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch staff list on mount
-  useEffect(() => {
-    const fetchStaff = async () => {
-      try {
-        const response = await getAllStaff();
-        if (response && response.status === "success" && response.data) {
-          const list = response.data.map(item => ({
-            id: item.employee_id,
-            name: item.full_name,
-            role: item.role || "Staff",
-            department: item.department || "General",
-          }));
-          setStaffList(list);
-        }
-      } catch (e) {
-        console.error("Failed to load staff list", e);
+  // Fetch staff list & all shifts on mount
+  const fetchInitialData = useCallback(async () => {
+    try {
+      const [staffRes, shiftsRes] = await Promise.allSettled([
+        getAllStaff(),
+        getAllShifts()
+      ]);
+
+      if (staffRes.status === "fulfilled" && staffRes.value?.status === "success" && staffRes.value.data) {
+        const list = staffRes.value.data.map(item => ({
+          id: item.employee_id,
+          name: item.full_name,
+          role: item.role || "Staff",
+          department: item.department || "General",
+          salary: parseFloat(item.salary || 0),
+          salary_type: item.salary_type || "Hourly",
+        }));
+        setStaffList(list);
       }
-    };
-    fetchStaff();
+
+      if (shiftsRes.status === "fulfilled" && shiftsRes.value?.status === "success" && shiftsRes.value.data) {
+        setAllShifts(shiftsRes.value.data);
+      }
+    } catch (e) {
+      console.error("Failed to load initial attendance data", e);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   // Selected staff details
   const selectedStaff = useMemo(() => {
     return staffList.find(s => String(s.id) === String(selectedStaffId)) || null;
   }, [staffList, selectedStaffId]);
+
+  // daily_tasks may come back as an array or a JSON string
+  const parseDailyTasks = (raw) => {
+    let list = raw;
+    if (typeof raw === "string") {
+      try { list = JSON.parse(raw); } catch { list = []; }
+    }
+    if (!Array.isArray(list)) return [];
+    return list.map((t) => ({
+      taskId: t.task_id ?? t.id,
+      title: t.title || "",
+      done: Number(t.is_done ?? t.done) === 1 || t.done === true,
+      doneAt: t.done_at || null,
+      doneBy: t.done_by || null,
+    }));
+  };
 
   const enrichLogs = useCallback((items, staffMember) => {
     return items.map(item => {
@@ -82,7 +132,19 @@ export default function useAttendance() {
       }
 
       const lateMinutes = parseInt(item.late_arrival_minutes || "0");
-      const status = item.attendance_id ? (lateMinutes > 0 ? "late" : "present") : "absent";
+      const isPastOrToday = dayjs(item.shift_date).isSameOrBefore(dayjs(), "day");
+      let status = "scheduled";
+      if (item.attendance_id) {
+        if (checkIn && !checkOut) {
+          status = "on-duty";
+        } else if (lateMinutes > 0) {
+          status = "late";
+        } else {
+          status = "present";
+        }
+      } else {
+        status = isPastOrToday ? "absent" : "scheduled";
+      }
 
       return {
         id: item.shift_id,
@@ -100,45 +162,63 @@ export default function useAttendance() {
         workedMinutes,
         lateMinutes,
         status,
+        dailyTasks: parseDailyTasks(item.daily_tasks),
       };
     });
   }, []);
 
-  // Fetch employee logs
+  // Fetch employee logs across selected month and selected date
   const fetchLogs = useCallback(async () => {
     if (staffList.length === 0) return;
     setLoading(true);
     try {
       const dateStr = selectedDate.format("YYYY-MM-DD");
+      const monthPrefix = selectedMonth.format("YYYY-MM");
 
-      if (selectedStaffId) {
-        const s = selectedStaff || { id: selectedStaffId, name: "Staff", role: "Staff", department: "General" };
-        const response = await getEmployeeLogs(selectedStaffId, dateStr);
-        if (response && response.status === "success" && response.data) {
-          setRecords(enrichLogs(response.data, s));
-        } else {
-          setRecords([]);
-        }
-      } else {
-        // Fetch all staff logs in parallel
-        const results = await Promise.allSettled(
-          staffList.map(s => getEmployeeLogs(s.id, dateStr))
-        );
-        const allRecords = [];
-        results.forEach((result, i) => {
-          if (result.status === "fulfilled" && result.value?.status === "success" && result.value.data) {
-            allRecords.push(...enrichLogs(result.value.data, staffList[i]));
+      const requestsMap = new Map();
+
+      // 1. Staff logs for selectedDate
+      staffList.forEach(s => {
+        requestsMap.set(`${s.id}_${dateStr}`, { employee_id: s.id, date: dateStr, staffMember: s });
+      });
+
+      // 2. Staff logs for shifts in selectedMonth
+      allShifts.forEach(shift => {
+        if (shift.shift_date && shift.shift_date.startsWith(monthPrefix)) {
+          const key = `${shift.employee_id}_${shift.shift_date}`;
+          if (!requestsMap.has(key)) {
+            const s = staffList.find(item => String(item.id) === String(shift.employee_id)) || {
+              id: shift.employee_id,
+              name: shift.full_name || "Staff",
+              role: shift.role || "Staff",
+              department: "General"
+            };
+            requestsMap.set(key, { employee_id: shift.employee_id, date: shift.shift_date, staffMember: s });
           }
-        });
-        setRecords(allRecords);
-      }
+        }
+      });
+
+      const requestItems = Array.from(requestsMap.values());
+      const results = await Promise.allSettled(
+        requestItems.map(item => getEmployeeLogs(item.employee_id, item.date))
+      );
+
+      const allRecords = [];
+      results.forEach((res, i) => {
+        const item = requestItems[i];
+        if (res.status === "fulfilled" && res.value?.status === "success" && Array.isArray(res.value.data) && res.value.data.length > 0) {
+          allRecords.push(...enrichLogs(res.value.data, item.staffMember));
+        }
+      });
+
+      setRecords(allRecords);
     } catch (e) {
       console.error("Failed to load logs", e);
       setRecords([]);
     } finally {
       setLoading(false);
     }
-  }, [selectedStaffId, selectedDate, selectedStaff, staffList, enrichLogs]);
+  }, [staffList, allShifts, selectedDate, selectedMonth, enrichLogs]);
 
   useEffect(() => {
     fetchLogs();
@@ -162,7 +242,7 @@ export default function useAttendance() {
     const present = filteredRecords.filter((r) => r.status === "present" || r.status === "late").length;
     const late = filteredRecords.filter((r) => r.status === "late").length;
     const absent = filteredRecords.filter((r) => r.status === "absent").length;
-    
+
     const workingDays = filteredRecords.filter((r) => r.status === "present" || r.status === "late");
     const totalMinutes = workingDays.reduce((sum, r) => sum + (r.workedMinutes || 0), 0);
     const avgMins = workingDays.length > 0 ? totalMinutes / workingDays.length : 0;
@@ -187,23 +267,178 @@ export default function useAttendance() {
     return filteredRecords.slice(start, start + PAGE_SIZE);
   }, [filteredRecords, page]);
 
-  const hasActiveFilters = !!(searchText || department || role || statusFilter);
+  const hasActiveFilters = !!(searchText || department || role || statusFilter || shiftTypeFilter || selectedStaffId);
 
   const handleClearFilters = useCallback(() => {
     setSearchText("");
     setDepartment("");
     setRole("");
     setStatusFilter("");
+    setShiftTypeFilter("");
+    setSelectedStaffId(null);
     setPage(1);
   }, []);
 
-  // Modals operations (Mock/Empty stub implementations)
-  const handleOpenAdd = () => setAddModalOpen(true);
-  const handleConfirmAdd = () => {
-    toast.error("Manual add is not configured for backend.");
-    setAddModalOpen(false);
+  // Week navigation & calculations (Matching Schedule / Rota week view)
+  const weekDays = useMemo(() => {
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = currentWeekStart.add(i, "day");
+      days.push({
+        date: d.format("YYYY-MM-DD"),
+        dayName: d.format("ddd"),
+        fullDayName: d.format("dddd"),
+        dayNumber: d.format("DD"),
+        monthName: d.format("MMM"),
+        isToday: d.isSame(dayjs(), "day"),
+      });
+    }
+    return days;
+  }, [currentWeekStart]);
+
+  const weekLabel = useMemo(() => {
+    const start = currentWeekStart.format("DD MMM");
+    const end = currentWeekStart.add(6, "day").format("DD MMM YYYY");
+    return `${start} – ${end}`;
+  }, [currentWeekStart]);
+
+  const goToPrevWeek = useCallback(() => {
+    setCurrentWeekStart((prev) => prev.subtract(1, "week"));
+  }, []);
+
+  const goToNextWeek = useCallback(() => {
+    setCurrentWeekStart((prev) => prev.add(1, "week"));
+  }, []);
+
+  const goToToday = useCallback(() => {
+    setCurrentWeekStart(dayjs().startOf("isoWeek"));
+    setSelectedDate(dayjs());
+  }, []);
+
+  // Grouped records for Schedule Week View
+  const groupedWeekRecords = useMemo(() => {
+    const grouped = {};
+    weekDays.forEach((day) => {
+      grouped[day.date] = [];
+    });
+
+    const weekDates = weekDays.map((d) => d.date);
+
+    // 1. Collect all shifts belonging to this week
+    allShifts.forEach((shift) => {
+      if (weekDates.includes(shift.shift_date)) {
+        const attMatch = records.find(
+          (r) =>
+            (r.id && String(r.id) === String(shift.shift_id)) ||
+            (String(r.staffId) === String(shift.employee_id) && r.date === shift.shift_date)
+        );
+
+        const staffMember = staffList.find((s) => String(s.id) === String(shift.employee_id)) || {};
+        const isFuture = dayjs(shift.shift_date).isAfter(dayjs(), "day");
+
+        const record = {
+          id: shift.shift_id,
+          shiftId: shift.shift_id,
+          attendanceId: attMatch?.attendanceId || null,
+          staffId: shift.employee_id,
+          staffName: shift.full_name || staffMember.name || "Staff",
+          staffRole: shift.role || staffMember.role || "Staff",
+          department: staffMember.department || "General",
+          date: shift.shift_date,
+          shiftName: shift.shift_type,
+          shiftType: (shift.shift_type || "morning").toLowerCase(),
+          scheduledStart: shift.start_time ? shift.start_time.substring(0, 5) : null,
+          scheduledEnd: shift.end_time ? shift.end_time.substring(0, 5) : null,
+          checkIn: attMatch?.checkIn || null,
+          checkOut: attMatch?.checkOut || null,
+          workedMinutes: attMatch?.workedMinutes || 0,
+          lateMinutes: attMatch?.lateMinutes || 0,
+          dailyTasks: attMatch?.dailyTasks || [],
+          status: attMatch ? attMatch.status : isFuture ? "scheduled" : "absent",
+        };
+
+        // Filter checks
+        const q = searchText.trim().toLowerCase();
+        if (q && !record.staffName.toLowerCase().includes(q)) return;
+        if (department && record.department !== department) return;
+        if (role && record.staffRole !== role) return;
+        if (statusFilter && record.status !== statusFilter) return;
+        if (selectedStaffId && String(record.staffId) !== String(selectedStaffId)) return;
+        if (shiftTypeFilter && record.shiftType !== shiftTypeFilter.toLowerCase()) return;
+
+        grouped[shift.shift_date].push(record);
+      }
+    });
+
+    // 2. Add any records in `records` for this week not in allShifts
+    records.forEach((r) => {
+      if (weekDates.includes(r.date)) {
+        const alreadyAdded = grouped[r.date]?.some(
+          (item) =>
+            (item.id && String(item.id) === String(r.id)) ||
+            (String(item.staffId) === String(r.staffId) && item.date === r.date)
+        );
+
+        if (!alreadyAdded) {
+          const q = searchText.trim().toLowerCase();
+          if (q && !r.staffName.toLowerCase().includes(q)) return;
+          if (department && r.department !== department) return;
+          if (role && r.staffRole !== role) return;
+          if (statusFilter && r.status !== statusFilter) return;
+          if (selectedStaffId && String(r.staffId) !== String(selectedStaffId)) return;
+          if (shiftTypeFilter && (r.shiftName || "").toLowerCase() !== shiftTypeFilter.toLowerCase()) return;
+
+          grouped[r.date].push(r);
+        }
+      }
+    });
+
+    return grouped;
+  }, [allShifts, records, weekDays, staffList, searchText, department, role, statusFilter, selectedStaffId, shiftTypeFilter]);
+
+  // Modals operations
+  const handleOpenAdd = (date = null) => {
+    setPreSelectedDate(date ? dayjs(date) : null);
+    setAddModalOpen(true);
   };
-  
+  const handleConfirmAdd = useCallback(async (values) => {
+    try {
+      const date = dayjs(values.date).format("YYYY-MM-DD");
+      const toFullDateTime = (timeVal) =>
+        timeVal ? `${date} ${dayjs(timeVal).format("HH:mm:ss")}` : null;
+      const shift = allShifts.find(
+        (s) => String(s.employee_id) === String(values.staffId) && s.shift_date === date
+      );
+      if (!shift?.shift_id) {
+        toast.error(`No scheduled shift for this staff member on ${date}. Add it from the Schedule first.`);
+        return;
+      }
+
+      const res = await updateAttendanceLog({
+        employee_id: values.staffId,
+        shift_id: shift?.shift_id || undefined,
+        date,
+        check_in_time: toFullDateTime(values.checkIn),
+        check_out_time: toFullDateTime(values.checkOut),
+        // left out unless entered manually, so the backend calculates it from the shift start
+        late_arrival_minutes: values.lateMinutes === "" || values.lateMinutes == null ? undefined : Number(values.lateMinutes),
+        daily_tasks: (values.dailyTasks || [])
+          .filter((t) => t?.taskId)
+          .map((t) => ({ task_id: t.taskId, is_done: t.done ? 1 : 0 })),
+      });
+      if (res?.status === "success") {
+        toast.success("Attendance log created successfully!");
+        setAddModalOpen(false);
+        fetchLogs();
+      } else {
+        toast.error(res?.message || "Create failed");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Create failed");
+    }
+  }, [allShifts, fetchLogs]);
+
   const handleOpenEdit = (record) => {
     setEditingRecord(record);
     setEditModalOpen(true);
@@ -226,7 +461,10 @@ export default function useAttendance() {
         date,
         check_in_time: toFullDateTime(values.checkIn),
         check_out_time: toFullDateTime(values.checkOut),
-        late_arrival_minutes: values.lateMinutes ?? 0,
+        late_arrival_minutes: values.lateMinutes === "" || values.lateMinutes == null ? undefined : Number(values.lateMinutes),
+        daily_tasks: (values.dailyTasks || [])
+          .filter((t) => t?.taskId)
+          .map((t) => ({ task_id: t.taskId, is_done: t.done ? 1 : 0 })),
       };
 
       const res = await updateAttendanceLog(payload);
@@ -244,12 +482,72 @@ export default function useAttendance() {
     }
   }, [editingRecord, fetchLogs]);
 
-  const handleDeleteRecord = () => {
+  const refreshShifts = useCallback(async () => {
+    try {
+      const res = await getAllShifts();
+      if (res && res.status === "success" && res.data) {
+        setAllShifts(res.data);
+      }
+    } catch (e) {
+      console.error("Failed to refresh shifts", e);
+    }
+  }, []);
+
+  const handleDeleteShift = useCallback(async (shift) => {
+    try {
+      const shiftId = Number(shift.shift_id || shift.id);
+      const res = await deleteShift(shiftId);
+      if (res && res.status === "success") {
+        toast.success("Shift removed successfully");
+        refreshShifts();
+      } else {
+        toast.error(res?.message || "Failed to delete shift");
+      }
+    } catch (error) {
+      toast.error("Delete failed");
+    }
+  }, [refreshShifts]);
+
+  const handleOpenAddShift = useCallback((day = null, staffId = null) => {
+    setShiftDrawerEditShift(null);
+    setPreSelectedShiftDay(day || 1);
+    setPreSelectedShiftStaffId(staffId ? String(staffId) : (staffList[0]?.id ? String(staffList[0].id) : null));
+    setShiftDrawerOpen(true);
+  }, [staffList]);
+
+  const handleOpenEditShift = useCallback((shift) => {
+    setShiftDrawerEditShift(shift);
+    setShiftDrawerOpen(true);
+  }, []);
+
+  const handleCloseShiftDrawer = useCallback(() => {
+    setShiftDrawerOpen(false);
+    setShiftDrawerEditShift(null);
+  }, []);
+
+  const displayStaffList = useMemo(() => {
+    let list = staffList;
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      list = list.filter((s) => (s.name || "").toLowerCase().includes(q) || (s.role || "").toLowerCase().includes(q));
+    }
+    if (department) {
+      list = list.filter((s) => s.department === department);
+    }
+    if (role) {
+      list = list.filter((s) => s.role === role);
+    }
+    return list;
+  }, [staffList, searchText, department, role]);
+
+  const handleDeleteRecord = useCallback(() => {
     toast.error("Delete record is not configured for backend.");
-  };
+  }, []);
 
   return {
     records: pagedRecords,
+    allRecords: records,
+    allShifts,
     totalCount,
     page,
     setPage,
@@ -257,10 +555,42 @@ export default function useAttendance() {
     stats,
     liveTime,
     staffList,
+    displayStaffList,
     shifts: SHIFTS,
     departments: DEPARTMENTS,
     roles: ROLES,
     loading,
+
+    // Matrix View controls
+    selectedMonth,
+    setSelectedMonth,
+    showCost,
+    setShowCost,
+    shiftDrawerOpen,
+    shiftDrawerEditShift,
+    preSelectedShiftDay,
+    preSelectedShiftStaffId,
+    handleOpenAddShift,
+    handleOpenEditShift,
+    handleCloseShiftDrawer,
+    handleDeleteShift,
+    refreshShifts,
+
+    // View mode (Matrix Grid vs Week View vs Table View)
+    viewMode,
+    setViewMode,
+
+    // Week navigation & grouped data
+    currentWeekStart,
+    setCurrentWeekStart,
+    weekDays,
+    weekLabel,
+    goToPrevWeek,
+    goToNextWeek,
+    goToToday,
+    groupedWeekRecords,
+    shiftTypeFilter,
+    setShiftTypeFilter,
 
     // Selected Employee State
     selectedStaffId,
@@ -268,8 +598,8 @@ export default function useAttendance() {
     selectedStaff,
     todayRecordForSelected: null,
     workedLiveTime: null,
-    handleClockIn: () => {},
-    handleClockOut: () => {},
+    handleClockIn: () => { },
+    handleClockOut: () => { },
 
     // Filters
     searchText,
@@ -299,6 +629,7 @@ export default function useAttendance() {
     handleOpenEdit,
     handleConfirmEdit,
     handleDeleteRecord,
+    preSelectedDate,
     refetch: fetchLogs,
   };
 }

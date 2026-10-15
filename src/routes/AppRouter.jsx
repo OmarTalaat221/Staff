@@ -18,6 +18,7 @@ import RotaDetails from "../pages/rota/RotaDetails";
 import CreateRotaPage from "../pages/rota/CreateRotaPage";
 import Expenses from "../pages/expenses/Expenses";
 import Attendance from "../pages/attendance/Attendance";
+import DailyTasks from "../pages/tasks/DailyTasks";
 
 export default function AppRouter() {
   return (
@@ -38,6 +39,7 @@ export default function AppRouter() {
           <Route path="/staff" element={<StaffList />} />
           <Route path="/staff/:id" element={<StaffProfile />} />
           <Route path="/attendance" element={<Attendance />} />
+          <Route path="/tasks" element={<DailyTasks />} />
 
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/rota" element={<RotaList />} />

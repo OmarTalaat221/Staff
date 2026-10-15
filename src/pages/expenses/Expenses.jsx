@@ -3,7 +3,39 @@ import { Table, Button, Modal, Form, Input, InputNumber, DatePicker, Space, Popc
 import { Plus, Edit2, Trash2, Search, PoundSterling, Calendar, FileText, TrendingUp, X } from "lucide-react";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import { getExpenses, addExpense, updateExpense, deleteExpense, getExpenseReasons } from "../../features/Expenses/expenseService";
+
+dayjs.extend(customParseFormat);
+
+export const getExpenseMonthStr = (item) => {
+  if (!item) return "";
+  if (item.expense_date) {
+    const raw = String(item.expense_date).trim();
+    const d = dayjs(raw, ["YYYY-MM-DD", "YYYY/MM/DD", "DD-MM-YYYY", "DD - MM - YYYY"]);
+    if (d.isValid()) return d.format("YYYY-MM");
+    const match = raw.match(/(\d{4})[-/](\d{1,2})/);
+    if (match) return `${match[1]}-${match[2].padStart(2, "0")}`;
+    const matchDMY = raw.match(/(\d{1,2})\D*(\d{1,2})\D*(\d{4})/);
+    if (matchDMY) return `${matchDMY[3]}-${matchDMY[2].padStart(2, "0")}`;
+  }
+  if (item.expense_month && String(item.expense_month).includes("-")) {
+    const parts = String(item.expense_month).split("-");
+    if (parts.length === 2) return `${parts[0]}-${parts[1].padStart(2, "0")}`;
+  }
+  if (item.expense_month) {
+    const mm = String(item.expense_month).padStart(2, "0");
+    if (item.created_at) {
+      const year = dayjs(item.created_at).format("YYYY");
+      return `${year}-${mm}`;
+    }
+  }
+  if (item.created_at) {
+    const d = dayjs(item.created_at);
+    if (d.isValid()) return d.format("YYYY-MM");
+  }
+  return "";
+};
 
 const StatCard = ({ icon: Icon, label, value, color }) => (
   <div className="bg-surface rounded-2xl border border-border p-5 flex items-center gap-4 transition-all hover:shadow-md hover:border-text/10">
@@ -100,7 +132,7 @@ export default function Expenses() {
 
     const currentMonthStr = dayjs().format("YYYY-MM");
     const thisMonthAmount = expenses
-      .filter((item) => (item.expense_month || item.expense_date?.slice(0, 7)) === currentMonthStr)
+      .filter((item) => getExpenseMonthStr(item) === currentMonthStr)
       .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
     return {
@@ -113,21 +145,21 @@ export default function Expenses() {
 
   // Filtered expenses
   const filteredExpenses = useMemo(() => {
+    const targetMonth = selectedMonth ? selectedMonth.format("YYYY-MM") : null;
+
     return expenses.filter((item) => {
       const matchesSearch =
+        !searchText ||
         (item.title || "").toLowerCase().includes(searchText.toLowerCase()) ||
         (item.notes || "").toLowerCase().includes(searchText.toLowerCase());
 
-      const matchesMonth =
-        !selectedMonth ||
-        (item.expense_month || item.expense_date?.slice(0, 7)) === selectedMonth.format("YYYY-MM");
-
+      const matchesMonth = !targetMonth || getExpenseMonthStr(item) === targetMonth;
       const matchesTitle = !selectedTitleFilter || (item.title === selectedTitleFilter);
       const matchesPaymentMethod = !selectedPaymentMethod || (item.payment_method === selectedPaymentMethod);
 
       return matchesSearch && matchesMonth && matchesTitle && matchesPaymentMethod;
     });
-  }, [expenses, searchText, selectedMonth, selectedTitleFilter]);
+  }, [expenses, searchText, selectedMonth, selectedTitleFilter, selectedPaymentMethod]);
 
   const handleOpenAdd = () => {
     setEditingExpense(null);
@@ -146,26 +178,13 @@ export default function Expenses() {
 
   const handleOpenEdit = (record) => {
     setEditingExpense(record);
-    // parse existing expense_date to month/year if possible
     let month = String(dayjs().month() + 1).padStart(2, '0');
     let year = String(dayjs().year());
-    if (record.expense_date) {
-      try {
-        const d = dayjs(record.expense_date, ['YYYY-MM-DD', 'DD-MM-YYYY', 'DD - MM - YYYY', 'DD - MM - YYYY']);
-        if (d.isValid()) {
-          month = String(d.month() + 1).padStart(2, '0');
-          year = String(d.year());
-        } else {
-          const m = String(record.expense_date).match(/(\d{1,2})\D*(\d{1,2})\D*(\d{4})/);
-          if (m) {
-            // m[1]=day m[2]=month m[3]=year
-            month = String(m[2]).padStart(2, '0');
-            year = String(m[3]);
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
+    const monthStr = getExpenseMonthStr(record);
+    if (monthStr && monthStr.includes('-')) {
+      const [y, m] = monthStr.split('-');
+      year = y;
+      month = m;
     }
 
     form.setFieldsValue({
@@ -274,28 +293,9 @@ export default function Expenses() {
       dataIndex: "expense_date",
       key: "expense_date",
       width: 140,
-      render: (date) => {
-        let out = "";
-        try {
-          const d = dayjs(date, ['YYYY-MM-DD', 'DD-MM-YYYY', 'DD - MM - YYYY', 'DD - MM - YYYY']);
-          if (d.isValid()) out = d.format('YYYY-MM');
-          else {
-            const m = String(date).match(/(\d{1,2})\D*(\d{1,2})\D*(\d{4})/);
-            if (m) {
-              const parsedDate = dayjs(`${m[3]}-${m[2]}-${m[1]}`);
-              if (parsedDate.isValid()) {
-                out = parsedDate.format('YYYY-MM');
-              } else {
-                 out = String(date);
-              }
-            }
-            else out = String(date);
-          }
-        } catch (e) {
-          out = String(date || "");
-        }
-
-        return <span className="text-text/70 text-xs font-semibold">{out}</span>;
+      render: (_, record) => {
+        const out = getExpenseMonthStr(record);
+        return <span className="text-text/70 text-xs font-semibold">{out || "—"}</span>;
       },
     },
     {
@@ -422,6 +422,8 @@ export default function Expenses() {
             placeholder="Filter by month"
             value={selectedMonth}
             onChange={(date) => setSelectedMonth(date)}
+            format="YYYY-MM"
+            allowClear
             className="h-10 rounded-xl w-full sm:w-44"
             inputReadOnly
           />
@@ -485,7 +487,7 @@ export default function Expenses() {
             <span>{editingExpense ? "Edit Expense Transaction" : "Add New Expense"}</span>
           </div>
         }
-        open={modalOpen} 
+        open={modalOpen}
         onOk={() => form.submit()}
         onCancel={() => {
           setModalOpen(false);
@@ -516,7 +518,7 @@ export default function Expenses() {
               onChange={() => form.setFieldValue('notes', undefined)}
             />
           </Form.Item>
-          
+
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Form.Item
